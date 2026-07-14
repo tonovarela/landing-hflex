@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Asistencia | Semana Flexible</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { green: '#22c55e', greenLight: '#4ade80' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+            background-size: 400% 100%;
+            animation: shimmer 1.4s ease infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 100% 50%; }
+            100% { background-position: 0 50%; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-700 antialiased">
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ===== Contenido principal (dashboard) ===== -->
+        <div id="dashboard" class="space-y-6">
+
+            <!-- Fila superior: perfil + resumen semanal -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Tarjeta de perfil -->
+                <section class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col items-center">
+                    <div class="relative">
+                        <div class="w-28 h-28 rounded-full p-1 ring-2 ring-slate-200">
+                            <img id="profile-avatar" src="" alt="Foto de perfil"
+                                 class="w-full h-full rounded-full object-cover bg-slate-200">
+                        </div>
+                        <span id="profile-status"
+                              class="absolute bottom-2 right-2 w-4 h-4 rounded-full bg-brand-green border-2 border-white"></span>
+                    </div>
+
+                    <h1 id="profile-name" class="mt-4 text-lg font-bold text-slate-800 text-center uppercase tracking-wide">
+                        <span class="skeleton inline-block h-5 w-48 rounded"></span>
+                    </h1>
+                    <p id="profile-role" class="mt-1 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <span class="skeleton inline-block h-3 w-32 rounded"></span>
+                    </p>
+
+                    <div class="mt-6 grid grid-cols-2 gap-4 w-full">
+                        <div class="bg-slate-50 rounded-xl p-4 text-center">
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Vacaciones</p>
+                            <p id="profile-vacaciones" class="mt-1 text-xl font-bold text-slate-800">—</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-4 text-center">
+                            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Faltas</p>
+                            <p id="profile-faltas" class="mt-1 text-xl font-bold text-slate-800">—</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tarjeta de resumen semanal -->
+                <section class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <h2 id="week-title" class="text-lg font-semibold text-slate-800 mb-5">Semana Flexible</h2>
+
+                    <div class="bg-slate-50/60 rounded-xl p-5 border border-slate-100">
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 h-4 rounded-full bg-slate-200 overflow-hidden">
+                                <div id="progress-bar"
+                                     class="h-full rounded-full bg-gradient-to-r from-brand-greenLight to-brand-green transition-all duration-700 ease-out"
+                                     style="width: 0%"></div>
+                            </div>
+                            <span id="progress-pct" class="text-sm font-semibold text-blue-600 tabular-nums w-16 text-right">0.0%</span>
+                        </div>
+                        <p id="progress-label" class="mt-2 text-center text-xs text-slate-400">— de — horas</p>
+
+                        <div id="stats-grid" class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tabla de registros -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
+                <h2 class="text-center text-lg font-bold text-slate-800 mb-4">Registros de Asistencia de la Semana</h2>
+
+                <!-- Vista tabla (>= sm) -->
+                <div class="hidden sm:block overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                                <th class="text-left  py-3 px-3">Día</th>
+                                <th class="text-center py-3 px-3">Entrada</th>
+                                <th class="text-center py-3 px-3">Salida</th>
+                                <th class="text-right  py-3 px-3">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-body" class="divide-y divide-slate-50 text-sm"></tbody>
+                    </table>
+                </div>
+
+                <!-- Vista tarjetas (< sm) -->
+                <div id="records-cards" class="sm:hidden space-y-3"></div>
+            </section>
+        </div>
+
+        <!-- ===== Estado: colaborador no encontrado / id faltante ===== -->
+        <section id="not-found" class="hidden min-h-[70vh] flex items-center justify-center">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 max-w-md w-full text-center">
+                <div class="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                              d="M12 9v3.75m0 3.75h.008M10.34 3.94l-8.02 13.9A1.5 1.5 0 003.62 20.1h16.76a1.5 1.5 0 001.3-2.26l-8.02-13.9a1.5 1.5 0 00-2.6 0z"/>
+                    </svg>
+                </div>
+                <h2 id="not-found-title" class="mt-5 text-xl font-bold text-slate-800">Colaborador no encontrado</h2>
+                <p id="not-found-msg" class="mt-2 text-sm text-slate-500">
+                    No existe un colaborador con el identificador proporcionado.
+                </p>
+                <p class="mt-4 text-xs text-slate-400">
+                    Verifica el parámetro <code class="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-600">?id=</code> en la URL.
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== Estado: error de conexión ===== -->
+        <div id="error-banner" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm text-center mt-6">
+            No se pudieron cargar los datos. <button onclick="loadData()" class="underline font-semibold">Reintentar</button>
+        </div>
+
+    </div>
+
+    <script>
+        /* =========================================================
+           CONFIGURACIÓN DE API   (la API aún no existe: por ahora se usan mocks)
+           El id del colaborador se toma del query param  ?id=...  de la URL
+           y se envía al servicio.
+           ========================================================= */
+        const API_CONFIG = {
+            baseUrl: null,                    // p.ej. 'https://api.tuempresa.com'  ·  null = usa mocks
+            endpoints: {
+                asistencia: '/asistencia'     // GET ?id=..&semana=..  -> { perfil, semana, registros }
+            },
+            queryParam: 'id',                 // nombre del parámetro en la URL de esta página
+            headers: {
+                'Content-Type': 'application/json',
+                // 'Authorization': 'Bearer ' + TOKEN,
+            }
+        };
+
+        /* ---------- MOCKS (formato idéntico al que debe devolver tu API) ---------- */
+        const MOCK_ASISTENCIA = {
+            '16407': {
+                perfil: { nombre: 'ULISES GUZMAN MARES', puesto: 'CUENTAS POR PAGAR',
+                          avatar: avatarUrl('Ulises Guzman'), enLinea: true, vacaciones: -2.00, faltas: 0 },
+                semana: { titulo: 'Semana Flexible 28', porcentaje: 100.0, horasRegistradas: 47.65, horasEsperadas: 47.5,
+                    stats: { horasEsperadas: '47 h 30 m', horasVacaciones: '0 h 0 m', faltas: -4,
+                             retardos: 0, salidasAnticipadas: 0, totalRegistradas: '47 h 39 m' } },
+                registros: [
+                    { dia: 'Lunes',     entrada: '06/07/2026 08:54', salida: '06/07/2026 18:38', total: '9 h 44 m' },
+                    { dia: 'Martes',    entrada: '07/07/2026 08:52', salida: '07/07/2026 19:03', total: '10 h 11 m' },
+                    { dia: 'Miércoles', entrada: '08/07/2026 09:00', salida: '08/07/2026 18:45', total: '9 h 45 m' },
+                    { dia: 'Jueves',    entrada: '09/07/2026 09:02', salida: '09/07/2026 18:10', total: '9 h 8 m' },
+                    { dia: 'Viernes',   entrada: '10/07/2026 08:46', salida: '10/07/2026 17:37', total: '8 h 51 m' },
+                    { dia: 'Sábado',    entrada: null,               salida: null,               total: '0 h 0 m' },
+                    { dia: 'Domingo',   entrada: null,               salida: null,               total: '0 h 0 m' }
+                ]
+            }
+        };
+
+        function avatarUrl(nombre) {
+            return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre) +
+                   '&background=1e293b&color=fff&size=128';
+        }
+
+        /* =========================================================
+           OBTENCIÓN DE DATOS  (aquí conectas la API real cuando exista)
+           Debe lanzar un error con .notFound = true cuando el colaborador
+           no exista (HTTP 404), para mostrar la sección correspondiente.
+           ========================================================= */
+        async function fetchData({ id, semana } = {}) {
+            if (!API_CONFIG.baseUrl) {
+                await delay(350);
+                const data = MOCK_ASISTENCIA[id];
+                if (!data) { const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e; }
+                return data;
+            }
+            const params = new URLSearchParams();
+            if (id)     params.set('id', id);
+            if (semana) params.set('semana', semana);
+            const url = API_CONFIG.baseUrl + API_CONFIG.endpoints.asistencia + '?' + params.toString();
+            const res = await fetch(url, { headers: API_CONFIG.headers });
+            if (res.status === 404) { const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e; }
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return await res.json();
+        }
+
+        /* =========================================================
+           ESTADO Y FLUJO
+           ========================================================= */
+        function getColaboradorId() {
+            return new URLSearchParams(window.location.search).get(API_CONFIG.queryParam);
+        }
+
+        async function loadData() {
+            hide('error-banner');
+            hide('not-found');
+            const id = getColaboradorId();
+
+            // Sin id en la URL -> mostramos la sección de "no encontrado".
+            if (!id) {
+                showNotFound(
+                    'Falta el identificador',
+                    'No se proporcionó el id del colaborador en la URL.'
+                );
+                return;
+            }
+
+            show('dashboard');
+            try {
+                const data = await fetchData({ id });
+                renderProfile(data.perfil);
+                renderWeek(data.semana);
+                renderRecords(data.registros);
+            } catch (err) {
+                console.error('Error al cargar datos:', err);
+                if (err.notFound) {
+                    showNotFound(
+                        'Colaborador no encontrado',
+                        `No existe un colaborador con el identificador "${id}".`
+                    );
+                } else {
+                    showError();
+                }
+            }
+        }
+
+        function showNotFound(titulo, mensaje) {
+            hide('dashboard');
+            hide('error-banner');
+            document.getElementById('not-found-title').textContent = titulo;
+            document.getElementById('not-found-msg').textContent = mensaje;
+            show('not-found');
+        }
+
+        /* =========================================================
+           RENDERIZADO
+           ========================================================= */
+        function renderProfile(p) {
+            document.getElementById('profile-avatar').src = p.avatar || '';
+            document.getElementById('profile-name').textContent = p.nombre ?? '—';
+            document.getElementById('profile-role').textContent = p.puesto ?? '—';
+            document.getElementById('profile-vacaciones').textContent = fmtNum(p.vacaciones);
+            document.getElementById('profile-faltas').textContent = p.faltas ?? 0;
+
+            const status = document.getElementById('profile-status');
+            status.classList.toggle('bg-brand-green', !!p.enLinea);
+            status.classList.toggle('bg-slate-300', !p.enLinea);
+        }
+
+        function renderWeek(s) {
+            document.getElementById('week-title').textContent = s.titulo ?? 'Semana Flexible';
+
+            const pct = Number(s.porcentaje ?? 0);
+            document.getElementById('progress-pct').textContent = pct.toFixed(1) + '%';
+            document.getElementById('progress-label').textContent =
+                `${s.horasRegistradas ?? '—'} de ${s.horasEsperadas ?? '—'} horas`;
+
+            const bar = document.getElementById('progress-bar');
+            bar.style.width = '0%';
+            requestAnimationFrame(() => { bar.style.width = Math.min(pct, 100) + '%'; });
+
+            const st = s.stats || {};
+            const cards = [
+                { label: 'Horas Esperadas',     value: st.horasEsperadas,     accent: 'text-slate-800' },
+                { label: 'Horas Vacaciones',    value: st.horasVacaciones,    accent: 'text-slate-800' },
+                { label: 'Faltas',              value: st.faltas,             accent: 'text-slate-800' },
+                { label: 'Retardos',            value: st.retardos,           accent: 'text-slate-800' },
+                { label: 'Salidas Anticipadas', value: st.salidasAnticipadas, accent: 'text-slate-800' },
+                { label: 'Total Registradas',   value: st.totalRegistradas,   accent: 'text-brand-green' }
+            ];
+            document.getElementById('stats-grid').innerHTML = cards.map(c => `
+                <div class="bg-white rounded-lg border border-slate-100 py-3 px-2 text-center">
+                    <p class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">${c.label}</p>
+                    <p class="mt-1 text-base font-bold ${c.accent} tabular-nums">${c.value ?? '—'}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderRecords(records = []) {
+            document.getElementById('records-body').innerHTML = records.map(r => `
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="py-4 px-3 font-medium text-slate-700">${r.dia}</td>
+                    <td class="py-4 px-3 text-center text-slate-500 tabular-nums">${r.entrada ?? '—'}</td>
+                    <td class="py-4 px-3 text-center text-slate-500 tabular-nums">${r.salida ?? '—'}</td>
+                    <td class="py-4 px-3 text-right">
+                        <span class="inline-block bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('records-cards').innerHTML = records.map(r => `
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <span class="font-semibold text-slate-800">${r.dia}</span>
+                        <span class="bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <p class="text-slate-400 uppercase tracking-wide">Entrada</p>
+                            <p class="mt-0.5 text-slate-600 tabular-nums">${r.entrada ?? '—'}</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 uppercase tracking-wide">Salida</p>
+                            <p class="mt-0.5 text-slate-600 tabular-nums">${r.salida ?? '—'}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /* =========================================================
+           UTILIDADES
+           ========================================================= */
+        function fmtNum(n) { return (n === null || n === undefined) ? '—' : Number(n).toFixed(2); }
+        function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+        function show(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hide(id) { document.getElementById(id).classList.add('hidden'); }
+        function showError() { hide('dashboard'); show('error-banner'); }
+
+        /* Inicio */
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
