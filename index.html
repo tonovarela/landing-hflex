@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -16,11 +17,25 @@
             }
         }
     </script>
+    <!-- Anti-parpadeo: aplica el tema guardado ANTES de pintar -->
+    <script>
+        (function () {
+            const stored = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (stored === 'dark' || (!stored && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <style>
         .skeleton {
             background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
             background-size: 400% 100%;
             animation: shimmer 1.4s ease infinite;
+        }
+        .dark .skeleton {
+            background: linear-gradient(90deg, #334155 25%, #475569 37%, #334155 63%);
+            background-size: 400% 100%;
         }
         @keyframes shimmer {
             0% { background-position: 100% 50%; }
@@ -28,7 +43,29 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-700 antialiased">
+<body class="bg-slate-100 dark:bg-slate-900 min-h-screen text-slate-700 dark:text-slate-300 antialiased transition-colors">
+
+    <!-- ===== Encabezado: barra oscura a todo el ancho (logo + selector de tema) ===== -->
+    <header class="w-full bg-slate-900/90 backdrop-blur-sm shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+            <img src="https://dev.litoprocess.com/wp-content/uploads/2026/03/Logo_NUEVO_Litoprocess.png"
+                 alt="Litoprocess" class="max-h-9 w-auto object-contain">
+
+            <button id="theme-toggle" type="button" aria-label="Cambiar tema"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 shadow-sm hover:bg-slate-700 transition-colors">
+                <!-- Icono sol (visible en modo oscuro para cambiar a claro) -->
+                <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="4" stroke-width="1.8"/>
+                    <path stroke-linecap="round" stroke-width="1.8" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/>
+                </svg>
+                <!-- Icono luna (visible en modo claro para cambiar a oscuro) -->
+                <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+                <span id="theme-label" class="text-sm font-medium">Oscuro</span>
+            </button>
+        </div>
+    </header>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
@@ -39,71 +76,71 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 <!-- Tarjeta de perfil -->
-                <section class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col items-center">
+                <section class="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 flex flex-col items-center transition-colors">
                     <div class="relative">
-                        <div class="w-28 h-28 rounded-full p-1 ring-2 ring-slate-200">
+                        <div class="w-28 h-28 rounded-full p-1 ring-2 ring-slate-200 dark:ring-slate-600">
                             <img id="profile-avatar" src="" alt="Foto de perfil"
-                                 class="w-full h-full rounded-full object-cover bg-slate-200">
+                                 class="w-full h-full rounded-full object-cover bg-slate-200 dark:bg-slate-600">
                         </div>
                         <span id="profile-status"
-                              class="absolute bottom-2 right-2 w-4 h-4 rounded-full bg-brand-green border-2 border-white"></span>
+                              class="absolute bottom-2 right-2 w-4 h-4 rounded-full bg-brand-green border-2 border-white dark:border-slate-800"></span>
                     </div>
 
-                    <h1 id="profile-name" class="mt-4 text-lg font-bold text-slate-800 text-center uppercase tracking-wide">
+                    <h1 id="profile-name" class="mt-4 text-lg font-bold text-slate-800 dark:text-slate-100 text-center uppercase tracking-wide">
                         <span class="skeleton inline-block h-5 w-48 rounded"></span>
                     </h1>
-                    <p id="profile-role" class="mt-1 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    <p id="profile-role" class="mt-1 text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                         <span class="skeleton inline-block h-3 w-32 rounded"></span>
                     </p>
 
                     <div class="mt-6 grid grid-cols-2 gap-4 w-full">
-                        <div class="bg-slate-50 rounded-xl p-4 text-center">
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Vacaciones</p>
-                            <p id="profile-vacaciones" class="mt-1 text-xl font-bold text-slate-800">—</p>
+                        <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-center">
+                            <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vacaciones</p>
+                            <p id="profile-vacaciones" class="mt-1 text-xl font-bold text-slate-800 dark:text-slate-100">—</p>
                         </div>
-                        <div class="bg-slate-50 rounded-xl p-4 text-center">
-                            <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Faltas</p>
-                            <p id="profile-faltas" class="mt-1 text-xl font-bold text-slate-800">—</p>
+                        <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-center">
+                            <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Faltas</p>
+                            <p id="profile-faltas" class="mt-1 text-xl font-bold text-slate-800 dark:text-slate-100">—</p>
                         </div>
                     </div>
                 </section>
 
                 <!-- Tarjeta de resumen semanal -->
-                <section class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                    <h2 id="week-title" class="text-lg font-semibold text-slate-800 mb-5">Semana Flexible</h2>
-
-                    <div class="bg-slate-50/60 rounded-xl p-5 border border-slate-100">
-                        <div class="flex items-center gap-4">
-                            <div class="flex-1 h-4 rounded-full bg-slate-200 overflow-hidden">
-                                <div id="progress-bar"
-                                     class="h-full rounded-full bg-gradient-to-r from-brand-greenLight to-brand-green transition-all duration-700 ease-out"
-                                     style="width: 0%"></div>
-                            </div>
-                            <span id="progress-pct" class="text-sm font-semibold text-blue-600 tabular-nums w-16 text-right">0.0%</span>
+                <section class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 sm:p-8 transition-colors">
+                    <div class="flex items-end justify-between mb-6">
+                        <div>
+                            <h2 id="week-title" class="text-base font-medium text-slate-700 dark:text-slate-200">Semana Flexible</h2>
+                            <p id="progress-label" class="mt-1 text-xs text-slate-400 dark:text-slate-500">— de — horas</p>
                         </div>
-                        <p id="progress-label" class="mt-2 text-center text-xs text-slate-400">— de — horas</p>
-
-                        <div id="stats-grid" class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+                        <span id="progress-pct" class="text-3xl font-semibold text-slate-800 dark:text-slate-100 tabular-nums leading-none">0.0%</span>
                     </div>
+
+                    <div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                        <div id="progress-bar"
+                             class="h-full rounded-full bg-brand-green transition-all duration-700 ease-out"
+                             style="width: 0%"></div>
+                    </div>
+
+                    <div id="stats-grid" class="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-4"></div>
                 </section>
             </div>
 
             <!-- Tabla de registros -->
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6">
-                <h2 class="text-center text-lg font-bold text-slate-800 mb-4">Registros de Asistencia de la Semana</h2>
+            <section class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 sm:p-6 transition-colors">
+                <h2 class="text-center text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Registros de Asistencia de la Semana</h2>
 
                 <!-- Vista tabla (>= sm) -->
                 <div class="hidden sm:block overflow-x-auto">
                     <table class="w-full">
                         <thead>
-                            <tr class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                            <tr class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
                                 <th class="text-left  py-3 px-3">Día</th>
                                 <th class="text-center py-3 px-3">Entrada</th>
                                 <th class="text-center py-3 px-3">Salida</th>
                                 <th class="text-right  py-3 px-3">Total</th>
                             </tr>
                         </thead>
-                        <tbody id="records-body" class="divide-y divide-slate-50 text-sm"></tbody>
+                        <tbody id="records-body" class="divide-y divide-slate-50 dark:divide-slate-700/60 text-sm"></tbody>
                     </table>
                 </div>
 
@@ -114,31 +151,49 @@
 
         <!-- ===== Estado: colaborador no encontrado / id faltante ===== -->
         <section id="not-found" class="hidden min-h-[70vh] flex items-center justify-center">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 max-w-md w-full text-center">
-                <div class="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-10 max-w-md w-full text-center">
+                <div class="mx-auto w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
                     <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                               d="M12 9v3.75m0 3.75h.008M10.34 3.94l-8.02 13.9A1.5 1.5 0 003.62 20.1h16.76a1.5 1.5 0 001.3-2.26l-8.02-13.9a1.5 1.5 0 00-2.6 0z"/>
                     </svg>
                 </div>
-                <h2 id="not-found-title" class="mt-5 text-xl font-bold text-slate-800">Colaborador no encontrado</h2>
-                <p id="not-found-msg" class="mt-2 text-sm text-slate-500">
+                <h2 id="not-found-title" class="mt-5 text-xl font-bold text-slate-800 dark:text-slate-100">Colaborador no encontrado</h2>
+                <p id="not-found-msg" class="mt-2 text-sm text-slate-500 dark:text-slate-400">
                     No existe un colaborador con el identificador proporcionado.
                 </p>
-                <p class="mt-4 text-xs text-slate-400">
-                    Verifica el parámetro <code class="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-600">?id=</code> en la URL.
+                <p class="mt-4 text-xs text-slate-400 dark:text-slate-500">
+                    Verifica el parámetro <code class="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono text-slate-600 dark:text-slate-300">?id=</code> en la URL.
                 </p>
             </div>
         </section>
 
         <!-- ===== Estado: error de conexión ===== -->
-        <div id="error-banner" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm text-center mt-6">
+        <div id="error-banner" class="hidden bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 rounded-xl p-4 text-sm text-center mt-6">
             No se pudieron cargar los datos. <button onclick="loadData()" class="underline font-semibold">Reintentar</button>
         </div>
 
     </div>
 
     <script>
+        /* =========================================================
+           TEMA (oscuro / claro) con persistencia en localStorage
+           ========================================================= */
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeLabel = document.getElementById('theme-label');
+
+        function syncThemeLabel() {
+            const isDark = document.documentElement.classList.contains('dark');
+            themeLabel.textContent = isDark ? 'Claro' : 'Oscuro';
+        }
+        syncThemeLabel();
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            syncThemeLabel();
+        });
+
         /* =========================================================
            CONFIGURACIÓN DE API   (la API aún no existe: por ahora se usan mocks)
            El id del colaborador se toma del query param  ?id=...  de la URL
@@ -280,47 +335,47 @@
 
             const st = s.stats || {};
             const cards = [
-                { label: 'Horas Esperadas',     value: st.horasEsperadas,     accent: 'text-slate-800' },
-                { label: 'Horas Vacaciones',    value: st.horasVacaciones,    accent: 'text-slate-800' },
-                { label: 'Faltas',              value: st.faltas,             accent: 'text-slate-800' },
-                { label: 'Retardos',            value: st.retardos,           accent: 'text-slate-800' },
-                { label: 'Salidas Anticipadas', value: st.salidasAnticipadas, accent: 'text-slate-800' },
+                { label: 'Horas Esperadas',     value: st.horasEsperadas,     accent: 'text-slate-800 dark:text-slate-100' },
+                { label: 'Horas Vacaciones',    value: st.horasVacaciones,    accent: 'text-slate-800 dark:text-slate-100' },
+                { label: 'Faltas',              value: st.faltas,             accent: 'text-slate-800 dark:text-slate-100' },
+                { label: 'Retardos',            value: st.retardos,           accent: 'text-slate-800 dark:text-slate-100' },
+                { label: 'Salidas Anticipadas', value: st.salidasAnticipadas, accent: 'text-slate-800 dark:text-slate-100' },
                 { label: 'Total Registradas',   value: st.totalRegistradas,   accent: 'text-brand-green' }
             ];
             document.getElementById('stats-grid').innerHTML = cards.map(c => `
-                <div class="bg-white rounded-lg border border-slate-100 py-3 px-2 text-center">
-                    <p class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">${c.label}</p>
-                    <p class="mt-1 text-base font-bold ${c.accent} tabular-nums">${c.value ?? '—'}</p>
+                <div>
+                    <p class="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">${c.label}</p>
+                    <p class="mt-1 text-lg font-semibold ${c.accent} tabular-nums">${c.value ?? '—'}</p>
                 </div>
             `).join('');
         }
 
         function renderRecords(records = []) {
             document.getElementById('records-body').innerHTML = records.map(r => `
-                <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="py-4 px-3 font-medium text-slate-700">${r.dia}</td>
-                    <td class="py-4 px-3 text-center text-slate-500 tabular-nums">${r.entrada ?? '—'}</td>
-                    <td class="py-4 px-3 text-center text-slate-500 tabular-nums">${r.salida ?? '—'}</td>
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td class="py-4 px-3 font-medium text-slate-700 dark:text-slate-200">${r.dia}</td>
+                    <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.entrada ?? '—'}</td>
+                    <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.salida ?? '—'}</td>
                     <td class="py-4 px-3 text-right">
-                        <span class="inline-block bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
+                        <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
                     </td>
                 </tr>
             `).join('');
 
             document.getElementById('records-cards').innerHTML = records.map(r => `
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <div class="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-4 border border-slate-100 dark:border-slate-700">
                     <div class="flex items-center justify-between">
-                        <span class="font-semibold text-slate-800">${r.dia}</span>
-                        <span class="bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
+                        <span class="font-semibold text-slate-800 dark:text-slate-100">${r.dia}</span>
+                        <span class="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
                     </div>
                     <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
                         <div>
-                            <p class="text-slate-400 uppercase tracking-wide">Entrada</p>
-                            <p class="mt-0.5 text-slate-600 tabular-nums">${r.entrada ?? '—'}</p>
+                            <p class="text-slate-400 dark:text-slate-500 uppercase tracking-wide">Entrada</p>
+                            <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.entrada ?? '—'}</p>
                         </div>
                         <div>
-                            <p class="text-slate-400 uppercase tracking-wide">Salida</p>
-                            <p class="mt-0.5 text-slate-600 tabular-nums">${r.salida ?? '—'}</p>
+                            <p class="text-slate-400 dark:text-slate-500 uppercase tracking-wide">Salida</p>
+                            <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.salida ?? '—'}</p>
                         </div>
                     </div>
                 </div>
