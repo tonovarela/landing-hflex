@@ -92,17 +92,6 @@
                     <p id="profile-role" class="mt-1 text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                         <span class="skeleton inline-block h-3 w-32 rounded"></span>
                     </p>
-
-                    <div class="mt-6 grid grid-cols-2 gap-4 w-full">
-                        <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-center">
-                            <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vacaciones</p>
-                            <p id="profile-vacaciones" class="mt-1 text-xl font-bold text-slate-800 dark:text-slate-100">—</p>
-                        </div>
-                        <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-center">
-                            <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Faltas</p>
-                            <p id="profile-faltas" class="mt-1 text-xl font-bold text-slate-800 dark:text-slate-100">—</p>
-                        </div>
-                    </div>
                 </section>
 
                 <!-- Tarjeta de resumen semanal -->
@@ -200,62 +189,106 @@
            y se envía al servicio.
            ========================================================= */
         const API_CONFIG = {
-            baseUrl: null,                    // p.ej. 'https://api.tuempresa.com'  ·  null = usa mocks
-            endpoints: {
-                asistencia: '/asistencia'     // GET ?id=..&semana=..  -> { perfil, semana, registros }
-            },
+            baseUrl: 'http://servicios.litoprocess.com/perfil/api/perfil.php',
             queryParam: 'id',                 // nombre del parámetro en la URL de esta página
-            headers: {
-                'Content-Type': 'application/json',
-                // 'Authorization': 'Bearer ' + TOKEN,
-            }
-        };
-
-        /* ---------- MOCKS (formato idéntico al que debe devolver tu API) ---------- */
-        const MOCK_ASISTENCIA = {
-            '16407': {
-                perfil: { nombre: 'ULISES GUZMAN MARES', puesto: 'CUENTAS POR PAGAR',
-                          avatar: avatarUrl('Ulises Guzman'), enLinea: true, vacaciones: -2.00, faltas: 0 },
-                semana: { titulo: 'Semana Flexible 28', porcentaje: 100.0, horasRegistradas: 47.65, horasEsperadas: 47.5,
-                    stats: { horasEsperadas: '47 h 30 m', horasVacaciones: '0 h 0 m', faltas: -4,
-                             retardos: 0, salidasAnticipadas: 0, totalRegistradas: '47 h 39 m' } },
-                registros: [
-                    { dia: 'Lunes',     entrada: '06/07/2026 08:54', salida: '06/07/2026 18:38', total: '9 h 44 m' },
-                    { dia: 'Martes',    entrada: '07/07/2026 08:52', salida: '07/07/2026 19:03', total: '10 h 11 m' },
-                    { dia: 'Miércoles', entrada: '08/07/2026 09:00', salida: '08/07/2026 18:45', total: '9 h 45 m' },
-                    { dia: 'Jueves',    entrada: '09/07/2026 09:02', salida: '09/07/2026 18:10', total: '9 h 8 m' },
-                    { dia: 'Viernes',   entrada: '10/07/2026 08:46', salida: '10/07/2026 17:37', total: '8 h 51 m' },
-                    { dia: 'Sábado',    entrada: null,               salida: null,               total: '0 h 0 m' },
-                    { dia: 'Domingo',   entrada: null,               salida: null,               total: '0 h 0 m' }
-                ]
-            }
+            // Sin cabeceras personalizadas: un GET con 'Content-Type' dispara un preflight
+            // OPTIONS que la API responde con 400 y el navegador aborta la petición.
+            headers: {}
         };
 
         function avatarUrl(nombre) {
-            return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre) +
+            return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre || '') +
                    '&background=1e293b&color=fff&size=128';
         }
 
+        /* Foto oficial del colaborador (servicio de Litoprocess). */
+        function fotoUrl(idPersonal) {
+            return 'https://servicios.litoprocess.com/colaboradores/api/foto/' + encodeURIComponent(idPersonal);
+        }
+
         /* =========================================================
-           OBTENCIÓN DE DATOS  (aquí conectas la API real cuando exista)
-           Debe lanzar un error con .notFound = true cuando el colaborador
-           no exista (HTTP 404), para mostrar la sección correspondiente.
+           OBTENCIÓN DE DATOS  (API real de Litoprocess)
+           Devuelve { error, perfil } con los campos "planos" del servicio.
+           Lanza un error con .notFound = true cuando el colaborador no exista.
            ========================================================= */
-        async function fetchData({ id, semana } = {}) {
-            if (!API_CONFIG.baseUrl) {
-                await delay(350);
-                const data = MOCK_ASISTENCIA[id];
-                if (!data) { const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e; }
-                return data;
-            }
-            const params = new URLSearchParams();
-            if (id)     params.set('id', id);
-            if (semana) params.set('semana', semana);
-            const url = API_CONFIG.baseUrl + API_CONFIG.endpoints.asistencia + '?' + params.toString();
+        async function fetchData({ id } = {}) {
+            const url = API_CONFIG.baseUrl + '?' + new URLSearchParams({ id }).toString();
             const res = await fetch(url, { headers: API_CONFIG.headers });
             if (res.status === 404) { const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e; }
+            if (res.status === 400) {
+                const msg = await extraerMensajeError(res);
+                const e = new Error(msg); e.badRequest = true; e.mensaje = msg; throw e;
+            }
             if (!res.ok) throw new Error('HTTP ' + res.status);
-            return await res.json();
+
+            const json = await res.json();
+            if (json.error || !json.perfil) {
+                const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e;
+            }
+            return mapApiResponse(json.perfil, id);
+        }
+
+        /* Extrae el mensaje de error de una respuesta (JSON { error/mensaje } o texto plano). */
+        async function extraerMensajeError(res) {
+            try {
+                const json = await res.clone().json();
+                const err = typeof json.error === 'string' ? json.error : null;
+                return json.mensaje || json.message || err || 'La solicitud no es válida.';
+            } catch {
+                const txt = (await res.text().catch(() => '')).trim();
+                return txt || 'La solicitud no es válida.';
+            }
+        }
+
+        /* ---------- Adaptador: respuesta plana de la API -> formato de la plantilla ---------- */
+        function mapApiResponse(p, id) {
+            const esperadas   = toNum(p.tieTrabajar);
+            const registradas = toNum(p.tieTrabajado);
+            const vacaciones  = toNum(p.hrsVac);
+            const porcentaje  = esperadas > 0 ? (registradas / esperadas) * 100 : 0;
+
+            const dias = [
+                { dia: 'Lunes',     suf: 'LUN' },
+                { dia: 'Martes',    suf: 'MAR' },
+                { dia: 'Miércoles', suf: 'MIE' },
+                { dia: 'Jueves',    suf: 'JUE' },
+                { dia: 'Viernes',   suf: 'VIE' },
+                { dia: 'Sábado',    suf: 'SAB' },
+                { dia: 'Domingo',   suf: 'DOM' }
+            ];
+
+            const registros = dias.map(({ dia, suf }) => {
+                const entrada = p['E-' + suf] || null;
+                const salida  = p['S-' + suf] || null;
+                return { dia, entrada, salida, total: diffHoras(entrada, salida) };
+            });
+
+            return {
+                perfil: {
+                    nombre: p.NombreEmpleado,
+                    puesto: p.Departamento,
+                    avatar: fotoUrl(p.id_personal ?? id),
+                    avatarFallback: avatarUrl(p.NombreEmpleado),
+                    enLinea: true,
+                    vacaciones: vacaciones,
+                    faltas: 0
+                },
+                semana: {
+                    titulo: `Semana Flexible ${p.NumSemana ?? ''}`.trim(),
+                    porcentaje,
+                    horasRegistradas: registradas.toFixed(2),
+                    horasEsperadas: esperadas.toFixed(2),
+                    stats: {
+                        horasEsperadas:     decimalAHoras(esperadas),
+                        horasVacaciones:    decimalAHoras(vacaciones),
+                        faltas:             0,
+                        retardos:           p.numRetardos ?? 0,
+                        salidasAnticipadas: p.numSalAnt ?? 0,
+                        totalRegistradas:   decimalAHoras(registradas)
+                    }
+                },
+                registros
+            };
         }
 
         /* =========================================================
@@ -292,6 +325,11 @@
                         'Colaborador no encontrado',
                         `No existe un colaborador con el identificador "${id}".`
                     );
+                } else if (err.badRequest) {
+                    showNotFound(
+                        'Solicitud no válida',
+                        err.mensaje || 'La solicitud enviada al servidor no es válida.'
+                    );
                 } else {
                     showError();
                 }
@@ -310,11 +348,11 @@
            RENDERIZADO
            ========================================================= */
         function renderProfile(p) {
-            document.getElementById('profile-avatar').src = p.avatar || '';
+            const avatar = document.getElementById('profile-avatar');
+            avatar.onerror = () => { avatar.onerror = null; avatar.src = p.avatarFallback || ''; };
+            avatar.src = p.avatar || '';
             document.getElementById('profile-name').textContent = p.nombre ?? '—';
             document.getElementById('profile-role').textContent = p.puesto ?? '—';
-            document.getElementById('profile-vacaciones').textContent = fmtNum(p.vacaciones);
-            document.getElementById('profile-faltas').textContent = p.faltas ?? 0;
 
             const status = document.getElementById('profile-status');
             status.classList.toggle('bg-brand-green', !!p.enLinea);
@@ -387,6 +425,30 @@
            ========================================================= */
         function fmtNum(n) { return (n === null || n === undefined) ? '—' : Number(n).toFixed(2); }
         function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        /* Convierte un valor a número seguro (la API a veces manda ".0" o strings). */
+        function toNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
+
+        /* Horas decimales -> "H h M m"  (p.ej. 19.116 -> "19 h 7 m"). */
+        function decimalAHoras(dec) {
+            const n = toNum(dec);
+            const sign = n < 0 ? '-' : '';
+            const abs = Math.abs(n);
+            let h = Math.floor(abs);
+            let m = Math.round((abs - h) * 60);
+            if (m === 60) { h += 1; m = 0; }
+            return `${sign}${h} h ${m} m`;
+        }
+
+        /* Diferencia entre dos horas "HH:MM" -> "H h M m". Devuelve "0 h 0 m" si falta alguna. */
+        function diffHoras(entrada, salida) {
+            if (!entrada || !salida) return '0 h 0 m';
+            const [eh, em] = entrada.split(':').map(Number);
+            const [sh, sm] = salida.split(':').map(Number);
+            let mins = (sh * 60 + sm) - (eh * 60 + em);
+            if (!isFinite(mins) || mins < 0) return '0 h 0 m';
+            return `${Math.floor(mins / 60)} h ${mins % 60} m`;
+        }
         function show(id) { document.getElementById(id).classList.remove('hidden'); }
         function hide(id) { document.getElementById(id).classList.add('hidden'); }
         function showError() { hide('dashboard'); show('error-banner'); }
