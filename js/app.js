@@ -1,8 +1,14 @@
 /* =========================================================
    TEMA (oscuro / claro) con persistencia en localStorage
    ========================================================= */
-const baseUrl = "http://servicios.litoprocess.com/perfil/api/perfil.php";
+const baseUrl = "https://servicios.litoprocess.com/perfil/api/perfil.php";
 const baseUrlFoto = "https://servicios.litoprocess.com/colaboradores/api/foto/";
+
+/* Jornada completa de la Semana Flexible: 47.5 horas equivalen al 100%.
+   El porcentaje, la barra de avance y la etiqueta "X de 47.5 horas" se calculan
+   contra esta base fija. La tarjeta "Horas Esperadas", en cambio, muestra el valor
+   que envía el servicio (tieTrabajar). */
+const HORAS_SEMANA_COMPLETA = 47.5;
 
 const themeToggle = document.getElementById('theme-toggle');
 const themeLabel = document.getElementById('theme-label');
@@ -58,7 +64,8 @@ async function fetchData({ id } = {}) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
     const json = await res.json();
-    if (json.error || !json.perfil) {
+    const sinPerfil = !json.perfil || (Array.isArray(json.perfil) && json.perfil.length === 0);
+    if (json.error || sinPerfil) {
         const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e;
     }
     return mapApiResponse(json.perfil, id);
@@ -76,12 +83,30 @@ async function extraerMensajeError(res) {
     }
 }
 
-/* ---------- Adaptador: respuesta plana de la API -> formato de la plantilla ---------- */
-function mapApiResponse(p, id) {
-    const esperadas   = toNum(p.tieTrabajar);
-    const registradas = toNum(p.tieTrabajado);
-    const vacaciones  = toNum(p.hrsVac);
-    const porcentaje  = esperadas > 0 ? (registradas / esperadas) * 100 : 0;
+/* ---------- Adaptador: respuesta de la API -> formato de la plantilla ----------
+   El servicio ahora devuelve 'perfil' como un ARREGLO con una entrada por semana
+   (cada una con su NumSemana, checadas de entrada/salida, tieTrabajar, etc.).
+   Normalizamos a un arreglo, mapeamos cada semana y las ordenamos de la más reciente a la más
+   antigua (NumSemana descendente). Devolvemos los datos de la persona (iguales en
+   todas las semanas) una sola vez, junto con el arreglo de semanas. */
+function mapApiResponse(perfilRaw, id) {
+    const arr = (Array.isArray(perfilRaw) ? perfilRaw : [perfilRaw]).filter(Boolean);
+    const semanas = arr.map(p => mapSemana(p, id));
+    // Más reciente primero. Si NumSemana no es numérico, preserva el orden original.
+    semanas.sort((a, b) => b.numSemana - a.numSemana);
+    return {
+        perfil: semanas[0] ? semanas[0].perfil : null,
+        semanas
+    };
+}
+
+/* Mapea UNA semana (objeto plano del servicio) al formato { perfil, semana, registros }. */
+function mapSemana(p, id) {
+    const esperadas          = HORAS_SEMANA_COMPLETA;      // 47.5 h = 100% (base fija del porcentaje/barra)
+    const esperadasServicio  = toNum(p.tieTrabajar);       // "Horas Esperadas" tal cual del webservice
+    const registradas        = toNum(p.tieTrabajado);
+    const vacaciones         = toNum(p.hrsVac);
+    const porcentaje         = esperadas > 0 ? (registradas / esperadas) * 100 : 0;
 
     const dias = [
         { dia: 'Lunes',     suf: 'LUN' },
@@ -108,6 +133,7 @@ function mapApiResponse(p, id) {
     });
 
     return {
+        numSemana: toNum(p.NumSemana),
         perfil: {
             nombre: p.NombreEmpleado,
             puesto: p.Departamento,
@@ -123,7 +149,7 @@ function mapApiResponse(p, id) {
             horasRegistradas: registradas.toFixed(2),
             horasEsperadas: esperadas.toFixed(2),
             stats: {
-                horasEsperadas:     decimalAHoras(esperadas),
+                horasEsperadas:     decimalAHoras(esperadasServicio),
                 horasVacaciones:    decimalAHoras(vacaciones),
                 faltas:             0,
                 retardos:           p.numRetardos ?? 0,
@@ -148,35 +174,56 @@ function getColaboradorId() {
    porcentaje dado. Uso: index.html?mock=40  (rojo),
    ?mock=60 (amarillo), ?mock=85 (verde), ?mock=105 (fuegos).
    ========================================================= */
-function buildMockPerfil(pct) {
-    // Porcentaje = tieTrabajado / tieTrabajar * 100. Fijando esperadas=100,
-    // registradas=pct produce exactamente ese porcentaje.
-    const esperadas = 100;
+function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabajar }) {
+    // Porcentaje = tieTrabajado / 47.5 * 100. Para reproducir el pct pedido en
+    // ?mock=, fijamos registradas = 47.5 * pct / 100.
     const porcentaje = isFinite(pct) ? pct : 85;
-    const registradas = +(esperadas * porcentaje / 100).toFixed(2);
+    const registradas = +(HORAS_SEMANA_COMPLETA * porcentaje / 100).toFixed(2);
+
+    // Fecha DD/MM/YYYY del día i (0=lunes) a partir del lunes de la semana.
+    const fecha = (i) => {
+        const d = new Date(lunes);
+        d.setDate(d.getDate() + i);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        return `${dd}/${mm}/${d.getFullYear()}`;
+    };
 
     return {
         NombreEmpleado: 'COLABORADOR DEMO',
         Departamento: `PRUEBA UI · ${porcentaje}%`,
         id_personal: 'mock',
-        NumSemana: 28,
-        tieTrabajar: esperadas,
+        NumSemana: numSemana,
+        tieTrabajar: tieTrabajar,   // alimenta la tarjeta "Horas Esperadas" (independiente del 47.5)
         tieTrabajado: registradas,
-        hrsVac: 8,
+        hrsVac: hrsVac,
         numRetardos: 1,
         numSalAnt: 0,
         // Registros en el formato de fecha del servicio (DD/MM/YYYY HH:MM:SS).
-        'E-LUN': '06/07/2026 08:54:00', 'S-LUN': '06/07/2026 18:38:00',
-        'E-MAR': '07/07/2026 08:52:00', 'S-MAR': '07/07/2026 19:03:00',
-        'E-MIE': '08/07/2026 09:00:00', 'S-MIE': '08/07/2026 18:45:00',
-        'E-JUE': '09/07/2026 09:02:00', 'S-JUE': '09/07/2026 18:10:00',
-        'E-VIE': '10/07/2026 08:46:00', 'S-VIE': '10/07/2026 17:37:00',
+        'E-LUN': `${fecha(0)} 08:54:00`, 'S-LUN': `${fecha(0)} 18:38:00`,
+        'E-MAR': `${fecha(1)} 08:52:00`, 'S-MAR': `${fecha(1)} 19:03:00`,
+        'E-MIE': `${fecha(2)} 09:00:00`, 'S-MIE': `${fecha(2)} 18:45:00`,
+        'E-JUE': `${fecha(3)} 09:02:00`, 'S-JUE': `${fecha(3)} 18:10:00`,
+        'E-VIE': `${fecha(4)} 08:46:00`, 'S-VIE': `${fecha(4)} 17:37:00`,
         'E-SAB': null, 'S-SAB': null,
         'E-DOM': null, 'S-DOM': null,
         // Home office: el servicio manda la(s) fecha(s) en 'fechaHomeOffice'.
-        // Aquí, martes (07/07) y jueves (09/07) para probar la UI.
-        fechaHomeOffice: ['07/07/2026', '09/07/2026']
+        fechaHomeOffice: homeOffice
     };
+}
+
+/* Genera varias semanas de prueba (arreglo, como la API real). La semana más
+   reciente usa el porcentaje indicado en ?mock=; las anteriores traen datos fijos
+   para poder probar el selector. */
+function buildMockPerfiles(pct) {
+    return [
+        buildMockSemana(pct, { numSemana: 28, lunes: new Date(2026, 6, 6),
+            hrsVac: 8, tieTrabajar: 47.5, homeOffice: ['07/07/2026', '09/07/2026'] }),
+        buildMockSemana(72,  { numSemana: 27, lunes: new Date(2026, 5, 29),
+            hrsVac: 0, tieTrabajar: 47.5, homeOffice: ['30/06/2026'] }),
+        buildMockSemana(45,  { numSemana: 26, lunes: new Date(2026, 5, 22),
+            hrsVac: 16, tieTrabajar: 31.5, homeOffice: [] })   // semana con feriado: esperadas < 47.5
+    ];
 }
 
 async function loadData() {
@@ -187,10 +234,7 @@ async function loadData() {
     const mockPct = new URLSearchParams(window.location.search).get('mock');
     if (mockPct !== null) {
         show('dashboard');
-        const data = mapApiResponse(buildMockPerfil(Number(mockPct)), 'mock');
-        renderProfile(data.perfil);
-        renderWeek(data.semana);
-        renderRecords(data.registros);
+        renderDashboard(mapApiResponse(buildMockPerfiles(Number(mockPct)), 'mock'));
         return;
     }
 
@@ -207,10 +251,7 @@ async function loadData() {
 
     show('dashboard');
     try {
-        const data = await fetchData({ id });
-        renderProfile(data.perfil);
-        renderWeek(data.semana);
-        renderRecords(data.registros);
+        renderDashboard(await fetchData({ id }));
     } catch (err) {
         console.error('Error al cargar datos:', err);
         if (err.notFound) {
@@ -240,6 +281,49 @@ function showNotFound(titulo, mensaje) {
 /* =========================================================
    RENDERIZADO
    ========================================================= */
+
+/* Pinta todo el tablero a partir del resultado de mapApiResponse:
+   perfil (fijo) + selector de semanas + la semana más reciente ya seleccionada. */
+function renderDashboard(data) {
+    renderProfile(data.perfil);
+    setupWeekSelector(data.semanas);
+    renderSemana(data.semanas[0]);
+}
+
+/* Configura el selector de semanas. Solo se muestra cuando hay más de una semana;
+   al cambiar, vuelve a pintar el resumen y los registros de la semana elegida. */
+function setupWeekSelector(semanas = []) {
+    const sel   = document.getElementById('week-selector');
+    const title = document.getElementById('week-title');
+
+    if (semanas.length <= 1) {
+        sel.classList.add('hidden');
+        sel.innerHTML = '';
+        sel.onchange = null;
+        title.classList.remove('hidden');
+        return;
+    }
+
+    // Con varias semanas, el selector hace las veces de título.
+    title.classList.add('hidden');
+    sel.classList.remove('hidden');
+    sel.innerHTML = semanas
+        .map((s, i) => `<option value="${i}">${s.semana.titulo}</option>`)
+        .join('');
+    sel.value = '0';   // 'semanas' viene ordenado: la más reciente es la primera
+    sel.onchange = () => {
+        const s = semanas[Number(sel.value)];
+        if (s) renderSemana(s);
+    };
+}
+
+/* Pinta el resumen y los registros de una semana concreta. */
+function renderSemana(s) {
+    if (!s) return;
+    renderWeek(s.semana);
+    renderRecords(s.registros);
+}
+
 function renderProfile(p) {
     const avatar = document.getElementById('profile-avatar');
     avatar.onerror = () => { avatar.onerror = null; avatar.src = p.avatarFallback || ''; };

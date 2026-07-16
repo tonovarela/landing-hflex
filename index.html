@@ -67,7 +67,13 @@
                     <canvas id="fireworks-canvas" class="hidden"></canvas>
                     <div class="flex items-end justify-between mb-6">
                         <div>
-                            <h2 id="week-title" class="text-base font-medium text-slate-700 dark:text-slate-200">Semana Flexible</h2>
+                            <div class="flex items-center gap-2">
+                                <h2 id="week-title" class="text-base font-medium text-slate-700 dark:text-slate-200">Semana Flexible</h2>
+                                <!-- Selector de semana: visible solo cuando el servicio devuelve más de una semana -->
+                                <select id="week-selector"
+                                        aria-label="Seleccionar semana"
+                                        class="hidden text-base font-medium text-slate-700 dark:text-slate-200 bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg pl-2 pr-8 py-1 focus:outline-none focus:ring-2 focus:ring-brand-green cursor-pointer"></select>
+                            </div>
                             <p id="progress-label" class="mt-1 text-xs text-slate-400 dark:text-slate-500">— de — horas</p>
                         </div>
                         <span id="progress-pct" class="text-3xl font-semibold text-slate-800 dark:text-slate-100 tabular-nums leading-none">0.0%</span>
