@@ -96,7 +96,10 @@ function mapApiResponse(p, id) {
     const registros = dias.map(({ dia, suf }) => {
         const entrada = p['E-' + suf] || null;
         const salida  = p['S-' + suf] || null;
-        return { dia, entrada, salida, total: diffHoras(entrada, salida) };
+        // Home office: campo por definir del webservice (prototipo). Ajustar el nombre
+        // real cuando el servicio lo envíe (p.ej. 'HO-LUN', 'homeOffice', etc.).
+        const homeOffice = !!p['HO-' + suf];
+        return { dia, entrada, salida, total: diffHoras(entrada, salida), homeOffice };
     });
 
     return {
@@ -134,9 +137,57 @@ function getColaboradorId() {
     return new URLSearchParams(window.location.search).get(API_CONFIG.queryParam);
 }
 
+/* =========================================================
+   MOCK del servicio (solo para pruebas de UI)
+   Genera una respuesta "plana" como la de la API para un
+   porcentaje dado. Uso: index.html?mock=40  (rojo),
+   ?mock=60 (amarillo), ?mock=85 (verde), ?mock=105 (fuegos).
+   ========================================================= */
+function buildMockPerfil(pct) {
+    // Porcentaje = tieTrabajado / tieTrabajar * 100. Fijando esperadas=100,
+    // registradas=pct produce exactamente ese porcentaje.
+    const esperadas = 100;
+    const porcentaje = isFinite(pct) ? pct : 85;
+    const registradas = +(esperadas * porcentaje / 100).toFixed(2);
+
+    return {
+        NombreEmpleado: 'COLABORADOR DEMO',
+        Departamento: `PRUEBA UI · ${porcentaje}%`,
+        id_personal: 'mock',
+        NumSemana: 28,
+        tieTrabajar: esperadas,
+        tieTrabajado: registradas,
+        hrsVac: 8,
+        numRetardos: 1,
+        numSalAnt: 0,
+        // Registros en el formato de fecha del servicio (DD/MM/YYYY HH:MM:SS).
+        'E-LUN': '06/07/2026 08:54:00', 'S-LUN': '06/07/2026 18:38:00',
+        'E-MAR': '07/07/2026 08:52:00', 'S-MAR': '07/07/2026 19:03:00',
+        'E-MIE': '08/07/2026 09:00:00', 'S-MIE': '08/07/2026 18:45:00',
+        'E-JUE': '09/07/2026 09:02:00', 'S-JUE': '09/07/2026 18:10:00',
+        'E-VIE': '10/07/2026 08:46:00', 'S-VIE': '10/07/2026 17:37:00',
+        'E-SAB': null, 'S-SAB': null,
+        'E-DOM': null, 'S-DOM': null,
+        // Home office (prototipo): días de ejemplo con la marca activa.
+        'HO-MAR': true, 'HO-JUE': true
+    };
+}
+
 async function loadData() {
     hide('error-banner');
     hide('not-found');
+
+    // ---- Modo MOCK: ?mock=<porcentaje> (p.ej. ?mock=40) para probar la UI sin el servicio ----
+    const mockPct = new URLSearchParams(window.location.search).get('mock');
+    if (mockPct !== null) {
+        show('dashboard');
+        const data = mapApiResponse(buildMockPerfil(Number(mockPct)), 'mock');
+        renderProfile(data.perfil);
+        renderWeek(data.semana);
+        renderRecords(data.registros);
+        return;
+    }
+
     const id = getColaboradorId();
 
     // Sin id en la URL -> mostramos la sección de "no encontrado".
@@ -205,20 +256,24 @@ function renderWeek(s) {
 
     const bar = document.getElementById('progress-bar');
 
-    // Color de la barra según el porcentaje alcanzado:
+    // Color según el porcentaje alcanzado (barra y "Total Registradas" comparten color):
     //   < 50%  -> rojo   | 51%–75% -> amarillo | >= 76% -> verde
+    const barBg   = pct < 50 ? 'bg-red-500'   : pct <= 75 ? 'bg-yellow-400' : 'bg-green-500';
+    const barText = pct < 50 ? 'text-red-500' : pct <= 75 ? 'text-yellow-500' : 'text-green-500';
+
     bar.classList.remove('bg-brand-green', 'bg-red-500', 'bg-yellow-400', 'bg-green-500', 'bar-complete');
-    if (pct < 50)       bar.classList.add('bg-red-500');
-    else if (pct <= 75) bar.classList.add('bg-yellow-400');
-    else                bar.classList.add('bg-green-500');
+    bar.classList.add(barBg);
 
     bar.style.width = '0%';
     requestAnimationFrame(() => { bar.style.width = Math.min(pct, 100) + '%'; });
 
-    // Al superar el 100% -> destello en la barra + fuegos artificiales
-    if (pct > 100) {
+    // Fuegos artificiales cuando las horas registradas superan las esperadas.
+    // La animación dura 5 segundos y luego se detiene sola.
+    const registradas = Number(s.horasRegistradas);
+    const esperadas   = Number(s.horasEsperadas);
+    if (isFinite(registradas) && isFinite(esperadas) && registradas > esperadas) {
         bar.classList.add('bar-complete');
-        launchFireworks();
+        launchFireworks(5000);
     } else {
         stopFireworks();
     }
@@ -230,7 +285,7 @@ function renderWeek(s) {
         { label: 'Faltas',              value: st.faltas,             accent: 'text-slate-800 dark:text-slate-100' },
         { label: 'Retardos',            value: st.retardos,           accent: 'text-slate-800 dark:text-slate-100' },
         { label: 'Salidas Anticipadas', value: st.salidasAnticipadas, accent: 'text-slate-800 dark:text-slate-100' },
-        { label: 'Total Registradas',   value: st.totalRegistradas,   accent: 'text-brand-green' }
+        { label: 'Total Registradas',   value: st.totalRegistradas,   accent: barText }
     ];
     document.getElementById('stats-grid').innerHTML = cards.map(c => `
         <div>
@@ -240,15 +295,24 @@ function renderWeek(s) {
     `).join('');
 }
 
+/* Ícono de Home Office (prototipo). Se muestra solo cuando el registro lo indica;
+   el valor debe venir del webservice (campo por definir). */
+function homeOfficeIcon(activo) {
+    if (!activo) return '';
+    return `<img src="img/Homeoffice.png" alt="Home office" title="Home office"
+                 class="inline-block w-8 h-8 align-middle object-contain">`;
+}
+
 function renderRecords(records = []) {
     document.getElementById('records-body').innerHTML = records.map(r => `
         <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
             <td class="py-4 px-3 font-medium text-slate-700 dark:text-slate-200">${r.dia}</td>
             <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.entrada ?? '—'}</td>
             <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.salida ?? '—'}</td>
-            <td class="py-4 px-3 text-right">
-                <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
+            <td class="py-4 px-3 text-right whitespace-nowrap">
+                <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums align-middle">${r.total ?? '0 h 0 m'}</span>
             </td>
+            <td class="py-4 px-3 text-center w-12">${homeOfficeIcon(r.homeOffice)}</td>
         </tr>
     `).join('');
 
@@ -256,7 +320,10 @@ function renderRecords(records = []) {
         <div class="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-4 border border-slate-100 dark:border-slate-700">
             <div class="flex items-center justify-between">
                 <span class="font-semibold text-slate-800 dark:text-slate-100">${r.dia}</span>
-                <span class="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
+                <span class="flex items-center gap-1.5">
+                    ${homeOfficeIcon(r.homeOffice)}
+                    <span class="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
+                </span>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div>
@@ -339,7 +406,7 @@ function showError() { hide('dashboard'); show('error-banner'); }
    ========================================================= */
 const Fireworks = (() => {
     let canvas, ctx, particles = [], rockets = [], rafId = null, running = false;
-    let nextLaunchAt = 0, listenerAdded = false;
+    let nextLaunchAt = 0, listenerAdded = false, stopTimer = null;
     const COLORS = ['#f43f5e', '#facc15', '#22c55e', '#38bdf8', '#a855f7', '#fb923c', '#ec4899'];
 
     // Borde inferior de la tarjeta dentro del lienzo (desde ahí despegan los cohetes).
@@ -471,7 +538,7 @@ const Fireworks = (() => {
         }
     }
 
-    function start() {
+    function start(durationMs) {
         if (running) return;
         canvas = document.getElementById('fireworks-canvas');
         ctx = canvas.getContext('2d');
@@ -481,18 +548,24 @@ const Fireworks = (() => {
         running = true;
         nextLaunchAt = 0;   // el primer frame dispara de inmediato
         if (!rafId) rafId = requestAnimationFrame(frame);
+
+        // Detiene el lanzamiento tras la duración indicada; las partículas
+        // restantes se desvanecen solas después.
+        if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; }
+        if (durationMs > 0) stopTimer = setTimeout(stop, durationMs);
     }
 
     function stop() {
         running = false;
+        if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; }
         // Deja que los cohetes y partículas restantes se desvanezcan solos.
     }
 
     return { start, stop };
 })();
 
-function launchFireworks() { Fireworks.start(); }
-function stopFireworks()   { Fireworks.stop(); }
+function launchFireworks(durationMs) { Fireworks.start(durationMs); }
+function stopFireworks()             { Fireworks.stop(); }
 
 /* Inicio */
 document.addEventListener('DOMContentLoaded', loadData);
