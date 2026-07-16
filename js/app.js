@@ -93,12 +93,17 @@ function mapApiResponse(p, id) {
         { dia: 'Domingo',   suf: 'DOM' }
     ];
 
-    const registros = dias.map(({ dia, suf }) => {
+    // Home office: el servicio envía la(s) fecha(s) en 'fechaHomeOffice'. Reconstruimos
+    // el calendario de la semana para ubicar el día correcto aunque ese día no tenga
+    // checada (entrada/salida en null).
+    const hoDias      = homeOfficeDias(p);
+    const semanaKeys  = fechasSemana(p, dias);
+
+    const registros = dias.map(({ dia, suf }, i) => {
         const entrada = p['E-' + suf] || null;
         const salida  = p['S-' + suf] || null;
-        // Home office: campo por definir del webservice (prototipo). Ajustar el nombre
-        // real cuando el servicio lo envíe (p.ej. 'HO-LUN', 'homeOffice', etc.).
-        const homeOffice = !!p['HO-' + suf];
+        const diaKey  = semanaKeys[i] || fechaKey(entrada) || fechaKey(salida);
+        const homeOffice = diaKey != null && hoDias.has(diaKey);
         return { dia, entrada, salida, total: diffHoras(entrada, salida), homeOffice };
     });
 
@@ -168,8 +173,9 @@ function buildMockPerfil(pct) {
         'E-VIE': '10/07/2026 08:46:00', 'S-VIE': '10/07/2026 17:37:00',
         'E-SAB': null, 'S-SAB': null,
         'E-DOM': null, 'S-DOM': null,
-        // Home office (prototipo): días de ejemplo con la marca activa.
-        'HO-MAR': true, 'HO-JUE': true
+        // Home office: el servicio manda la(s) fecha(s) en 'fechaHomeOffice'.
+        // Aquí, martes (07/07) y jueves (09/07) para probar la UI.
+        fechaHomeOffice: ['07/07/2026', '09/07/2026']
     };
 }
 
@@ -295,8 +301,8 @@ function renderWeek(s) {
     `).join('');
 }
 
-/* Ícono de Home Office (prototipo). Se muestra solo cuando el registro lo indica;
-   el valor debe venir del webservice (campo por definir). */
+/* Ícono de Home Office. Se muestra solo en los días cuya fecha coincide con
+   'fechaHomeOffice' del webservice (ver mapApiResponse). */
 function homeOfficeIcon(activo) {
     if (!activo) return '';
     return `<img src="img/Homeoffice.png" alt="Home office" title="Home office"
@@ -382,6 +388,69 @@ function parseFechaHora(str) {
     // Con fecha -> segundos epoch (soporta cruces de día). Sin fecha -> segundos del día.
     if (y != null) return Math.floor(new Date(y, mo - 1, d, hh, mm, ss).getTime() / 1000);
     return hh * 3600 + mm * 60 + ss;
+}
+
+/* Extrae solo la fecha de una marca del servicio como clave canónica "AÑO-MES-DIA"
+   (sin ceros a la izquierda). Acepta "DD/MM/YYYY ...", "YYYY-MM-DD ..." y
+   devuelve null si no hay una fecha reconocible. */
+function fechaKey(str) {
+    if (str == null) return null;
+    str = String(str).trim();
+    if (!str) return null;
+    const dmy = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    const ymd = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    let y, mo, d;
+    if (dmy)      { d = +dmy[1]; mo = +dmy[2]; y = +dmy[3]; }
+    else if (ymd) { y = +ymd[1]; mo = +ymd[2]; d = +ymd[3]; }
+    else return null;
+    return `${y}-${mo}-${d}`;
+}
+
+/* Convierte una marca del servicio en un Date a medianoche (sin hora). */
+function parseFechaDate(str) {
+    const k = fechaKey(str);
+    if (!k) return null;
+    const [y, mo, d] = k.split('-').map(Number);
+    return new Date(y, mo - 1, d);
+}
+
+/* Normaliza 'fechaHomeOffice' en un Set de claves de fecha. Tolera que el servicio
+   mande una sola fecha, un arreglo o varias separadas por coma (el LEFT JOIN puede
+   producir más de un día de Home Office por semana). */
+function homeOfficeDias(p) {
+    const set = new Set();
+    let val = p.fechaHomeOffice;
+    if (val == null) return set;
+    if (!Array.isArray(val)) val = String(val).split(',');
+    for (const v of val) {
+        const k = fechaKey(v);
+        if (k) set.add(k);
+    }
+    return set;
+}
+
+/* Reconstruye la fecha (clave) de cada día de la semana. Toma como referencia el
+   primer día con checada (que trae fecha completa) y calcula el resto a partir del
+   lunes de esa semana, para poder ubicar el Home Office aunque ese día no tenga
+   entrada/salida. Devuelve un arreglo alineado con 'dias' (lunes..domingo). */
+function fechasSemana(p, dias) {
+    const keys = new Array(dias.length).fill(null);
+    let ref = null;
+    for (const { suf } of dias) {
+        ref = parseFechaDate(p['E-' + suf]) || parseFechaDate(p['S-' + suf]);
+        if (ref) break;
+    }
+    if (!ref) return keys;
+
+    // Lunes de la semana de la fecha de referencia (getDay: 0=domingo).
+    const monday = new Date(ref);
+    monday.setDate(monday.getDate() - ((ref.getDay() + 6) % 7));
+    for (let i = 0; i < dias.length; i++) {
+        const dt = new Date(monday);
+        dt.setDate(monday.getDate() + i);
+        keys[i] = `${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}`;
+    }
+    return keys;
 }
 
 /* Diferencia entre entrada y salida -> "H h M m". Devuelve "0 h 0 m" si falta alguna. */
