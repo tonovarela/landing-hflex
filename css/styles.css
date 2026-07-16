@@ -1,0 +1,33 @@
+.skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+}
+.dark .skeleton {
+    background: linear-gradient(90deg, #334155 25%, #475569 37%, #334155 63%);
+    background-size: 400% 100%;
+}
+@keyframes shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+
+/* ===== Fuegos artificiales (anclados a la tarjeta, pueden desbordar hacia arriba) ===== */
+#fireworks-canvas {
+    position: absolute;
+    top: -260px;                 /* se extiende por encima de la tarjeta */
+    left: -80px;
+    width: calc(100% + 160px);   /* se expande a los lados */
+    height: calc(100% + 300px);
+    pointer-events: none;
+    z-index: 30;
+}
+
+/* Pequeño destello en la barra cuando se completa por encima del 100% */
+@keyframes barGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    50%      { box-shadow: 0 0 12px 2px rgba(34, 197, 94, 0.7); }
+}
+.bar-complete {
+    animation: barGlow 1.2s ease-in-out infinite;
+}
