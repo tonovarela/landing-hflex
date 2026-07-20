@@ -54,6 +54,7 @@ function applyTheme(name) {
     el.classList.toggle('matrix', name === 'matrix');
     localStorage.setItem('theme', name);
     MatrixRain.toggle(name === 'matrix');
+    if (name === 'matrix') stopFireworks();   // el efecto de fuegos no aplica en matrix
     syncThemeUI();
 }
 
@@ -778,7 +779,11 @@ const Fireworks = (() => {
     return { start, stop };
 })();
 
-function launchFireworks(durationMs) { Fireworks.start(durationMs); }
+// En el tema matrix no se lanzan fuegos artificiales (la lluvia digital es el efecto de fondo).
+function launchFireworks(durationMs) {
+    if (currentTheme() === 'matrix') return;
+    Fireworks.start(durationMs);
+}
 function stopFireworks()             { Fireworks.stop(); }
 
 /* =========================================================
