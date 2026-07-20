@@ -13,23 +13,33 @@
 <body class="bg-slate-100 dark:bg-slate-900 min-h-screen text-slate-700 dark:text-slate-300 antialiased transition-colors">
 
     <!-- ===== Encabezado: barra oscura a todo el ancho (logo + selector de tema) ===== -->
-    <header class="w-full bg-slate-900/90 backdrop-blur-sm shadow-md">
+    <header class="w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-            <img src="https://dev.litoprocess.com/wp-content/uploads/2026/03/Logo_NUEVO_Litoprocess.png"
-                 alt="Litoprocess" class="max-h-9 w-auto object-contain">
+            <!-- Logo modo claro -->
+            <img src="https://servicios.litoprocess.com/static/assets/img/lito-light.png"
+                 alt="Litoprocess" class="max-h-9 w-auto object-contain block dark:hidden">
+            <!-- Logo modo oscuro -->
+            <img src="https://servicios.litoprocess.com/static/assets/img/lito-dark.png"
+                 alt="Litoprocess" class="max-h-9 w-auto object-contain hidden dark:block">
 
             <button id="theme-toggle" type="button" aria-label="Cambiar tema"
-                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 shadow-sm hover:bg-slate-700 transition-colors">
-                <!-- Icono sol (visible en modo oscuro para cambiar a claro) -->
-                <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 shadow-sm transition-colors">
+                <!-- Iconos por tema: JS muestra el del tema activo (ver syncThemeUI en app.js) -->
+                <!-- Sol (tema claro) -->
+                <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="4" stroke-width="1.8"/>
                     <path stroke-linecap="round" stroke-width="1.8" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/>
                 </svg>
-                <!-- Icono luna (visible en modo claro para cambiar a oscuro) -->
-                <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Luna (tema oscuro) -->
+                <svg id="icon-moon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
                 </svg>
-                <span id="theme-label" class="text-sm font-medium">Oscuro</span>
+                <!-- Terminal (tema matrix · solo Sistemas) -->
+                <svg id="icon-matrix" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="4" width="18" height="16" rx="2" stroke-width="1.8"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 9l3 3-3 3M13.5 15H17"/>
+                </svg>
+                <span id="theme-label" class="text-sm font-medium">Tema</span>
             </button>
         </div>
     </header>
@@ -115,7 +125,8 @@
         </div>
 
         <!-- ===== Estado: colaborador no encontrado / id faltante ===== -->
-        <section id="not-found" class="hidden min-h-[70vh] flex items-center justify-center">
+        <section id="not-found" class="hidden">
+          <div class="min-h-[70vh] flex items-center justify-center">
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-10 max-w-md w-full text-center">
                 <div class="mx-auto w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
                     <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,6 +142,7 @@
                     Verifica el parámetro <code class="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono text-slate-600 dark:text-slate-300">?id=</code> en la URL.
                 </p>
             </div>
+          </div>
         </section>
 
         <!-- ===== Estado: error de conexión ===== -->

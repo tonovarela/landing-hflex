@@ -12,13 +12,12 @@
     100% { background-position: 0 50%; }
 }
 
-/* ===== Fuegos artificiales (anclados a la tarjeta, pueden desbordar hacia arriba) ===== */
+/* ===== Fuegos artificiales (lienzo a pantalla completa: las partículas nunca se recortan) ===== */
 #fireworks-canvas {
-    position: absolute;
-    top: -260px;                 /* se extiende por encima de la tarjeta */
-    left: -80px;
-    width: calc(100% + 160px);   /* se expande a los lados */
-    height: calc(100% + 300px);
+    position: fixed;
+    inset: 0;                    /* cubre todo el viewport */
+    width: 100vw;
+    height: 100vh;
     pointer-events: none;
     z-index: 30;
 }
@@ -30,4 +29,67 @@
 }
 .bar-complete {
     animation: barGlow 1.2s ease-in-out infinite;
+}
+
+/* =========================================================
+   TEMA MATRIX  (exclusivo del departamento de Sistemas)
+   Se construye sobre el modo oscuro (html.matrix implica html.dark):
+   fondo negro, tipografía monoespaciada, acentos verdes con glow
+   y una lluvia digital de fondo (#matrix-rain, generado por JS).
+   ========================================================= */
+#matrix-rain {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    display: none;            /* JS lo muestra solo con el tema matrix activo */
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* El contenido de la página queda por encima de la lluvia digital. */
+html.matrix body > *:not(#matrix-rain) {
+    position: relative;
+    z-index: 1;
+}
+
+html.matrix body {
+    background: #000 !important;
+    font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Courier New", monospace;
+}
+
+/* Encabezado translúcido con línea inferior verde. */
+html.matrix header {
+    background: rgba(0, 12, 4, 0.88) !important;
+    box-shadow: 0 1px 0 rgba(34, 197, 94, 0.4), 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Tarjetas y paneles: negro verdoso translúcido con borde y glow verde
+   (dejan entrever la lluvia de fondo sin sacrificar legibilidad). */
+html.matrix section,
+html.matrix #not-found .bg-white {
+    background: rgba(3, 20, 8, 0.72) !important;
+    border-color: rgba(34, 197, 94, 0.35) !important;
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.08),
+                0 0 24px rgba(34, 197, 94, 0.12) !important;
+    backdrop-filter: blur(2px);
+}
+
+/* Títulos y cifras destacadas en verde con leve resplandor. */
+html.matrix #profile-name,
+html.matrix #week-title,
+html.matrix #progress-pct,
+html.matrix section h2 {
+    color: #4ade80 !important;
+    text-shadow: 0 0 8px rgba(34, 197, 94, 0.45);
+}
+
+/* Botón de tema en tono terminal. */
+html.matrix #theme-toggle {
+    background: rgba(3, 20, 8, 0.85) !important;
+    border-color: rgba(34, 197, 94, 0.5) !important;
+    color: #4ade80 !important;
+}
+html.matrix #theme-toggle:hover {
+    background: rgba(6, 32, 14, 0.9) !important;
 }

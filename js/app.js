@@ -13,17 +13,71 @@ const HORAS_SEMANA_COMPLETA = 47.5;
 const themeToggle = document.getElementById('theme-toggle');
 const themeLabel = document.getElementById('theme-label');
 
-function syncThemeLabel() {
-    const isDark = document.documentElement.classList.contains('dark');
-    themeLabel.textContent = isDark ? 'Claro' : 'Oscuro';
+/* El tema "matrix" solo se habilita para el departamento de Sistemas.
+   Arranca en false y se define al cargar los datos del colaborador. */
+let matrixAllowed = false;
+
+const THEME_META = {
+    light:  { label: 'Claro',  icon: 'icon-sun'    },
+    dark:   { label: 'Oscuro', icon: 'icon-moon'   },
+    matrix: { label: 'Matrix', icon: 'icon-matrix' }
+};
+
+function currentTheme() {
+    const el = document.documentElement;
+    if (el.classList.contains('matrix')) return 'matrix';
+    return el.classList.contains('dark') ? 'dark' : 'light';
 }
-syncThemeLabel();
+
+/* Siguiente tema del ciclo. Con Sistemas: claro → oscuro → matrix → claro.
+   Sin Sistemas: claro ↔ oscuro. */
+function nextTheme(t) {
+    if (matrixAllowed) return t === 'light' ? 'dark' : t === 'dark' ? 'matrix' : 'light';
+    return t === 'dark' ? 'light' : 'dark';
+}
+
+/* Sincroniza la etiqueta y el icono visible con el tema activo. */
+function syncThemeUI() {
+    const t = currentTheme();
+    themeLabel.textContent = THEME_META[t].label;
+    for (const meta of Object.values(THEME_META)) {
+        document.getElementById(meta.icon)
+            .classList.toggle('hidden', meta.icon !== THEME_META[t].icon);
+    }
+}
+
+/* Aplica un tema: gestiona las clases del <html>, la persistencia,
+   la lluvia digital del tema matrix y la UI del botón. */
+function applyTheme(name) {
+    const el = document.documentElement;
+    el.classList.toggle('dark',   name === 'dark' || name === 'matrix');
+    el.classList.toggle('matrix', name === 'matrix');
+    localStorage.setItem('theme', name);
+    MatrixRain.toggle(name === 'matrix');
+    syncThemeUI();
+}
+
+syncThemeUI();
 
 themeToggle.addEventListener('click', () => {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    syncThemeLabel();
+    applyTheme(nextTheme(currentTheme()));
 });
+
+/* Habilita o no el tema matrix según el departamento del colaborador.
+   Si no está autorizado pero venía en matrix (localStorage), revierte a oscuro. */
+function applyDepartmentTheme(perfil) {
+    matrixAllowed = !!(perfil && perfil.esSistemas);
+    if (currentTheme() === 'matrix') {
+        if (matrixAllowed) MatrixRain.toggle(true);   // asegura la lluvia al recargar en matrix
+        else applyTheme('dark');                      // no autorizado: revierte
+    }
+    syncThemeUI();
+}
+
+/* ¿El departamento corresponde a Sistemas / TI / Desarrollo? */
+function esDepartamentoSistemas(dep) {
+    return /sistem|tecnolog|desarrollo|software|\bti\b|\bit\b/i.test(dep || '');
+}
 
 /* =========================================================
    CONFIGURACIÓN DE API   (la API aún no existe: por ahora se usan mocks)
@@ -137,6 +191,7 @@ function mapSemana(p, id) {
         perfil: {
             nombre: p.NombreEmpleado,
             puesto: p.Departamento,
+            esSistemas: esDepartamentoSistemas(p.Departamento),
             avatar: fotoUrl(p.id_personal ?? id),
             avatarFallback: avatarUrl(p.NombreEmpleado),
             enLinea: true,
@@ -174,7 +229,7 @@ function getColaboradorId() {
    porcentaje dado. Uso: index.html?mock=40  (rojo),
    ?mock=60 (amarillo), ?mock=85 (verde), ?mock=105 (fuegos).
    ========================================================= */
-function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabajar }) {
+function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabajar, dept }) {
     // Porcentaje = tieTrabajado / 47.5 * 100. Para reproducir el pct pedido en
     // ?mock=, fijamos registradas = 47.5 * pct / 100.
     const porcentaje = isFinite(pct) ? pct : 85;
@@ -191,7 +246,7 @@ function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabaja
 
     return {
         NombreEmpleado: 'COLABORADOR DEMO',
-        Departamento: `PRUEBA UI · ${porcentaje}%`,
+        Departamento: dept || `PRUEBA UI · ${porcentaje}%`,
         id_personal: 'mock',
         NumSemana: numSemana,
         tieTrabajar: tieTrabajar,   // alimenta la tarjeta "Horas Esperadas" (independiente del 47.5)
@@ -215,14 +270,14 @@ function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabaja
 /* Genera varias semanas de prueba (arreglo, como la API real). La semana más
    reciente usa el porcentaje indicado en ?mock=; las anteriores traen datos fijos
    para poder probar el selector. */
-function buildMockPerfiles(pct) {
+function buildMockPerfiles(pct, dept) {
     return [
         buildMockSemana(pct, { numSemana: 28, lunes: new Date(2026, 6, 6),
-            hrsVac: 8, tieTrabajar: 47.5, homeOffice: ['07/07/2026', '09/07/2026'] }),
+            hrsVac: 8, tieTrabajar: 47.5, homeOffice: ['07/07/2026', '09/07/2026'], dept }),
         buildMockSemana(72,  { numSemana: 27, lunes: new Date(2026, 5, 29),
-            hrsVac: 0, tieTrabajar: 47.5, homeOffice: ['30/06/2026'] }),
+            hrsVac: 0, tieTrabajar: 47.5, homeOffice: ['30/06/2026'], dept }),
         buildMockSemana(45,  { numSemana: 26, lunes: new Date(2026, 5, 22),
-            hrsVac: 16, tieTrabajar: 31.5, homeOffice: [] })   // semana con feriado: esperadas < 47.5
+            hrsVac: 16, tieTrabajar: 31.5, homeOffice: [], dept })   // semana con feriado: esperadas < 47.5
     ];
 }
 
@@ -231,10 +286,12 @@ async function loadData() {
     hide('not-found');
 
     // ---- Modo MOCK: ?mock=<porcentaje> (p.ej. ?mock=40) para probar la UI sin el servicio ----
-    const mockPct = new URLSearchParams(window.location.search).get('mock');
+    const params  = new URLSearchParams(window.location.search);
+    const mockPct = params.get('mock');
     if (mockPct !== null) {
+        const dept = params.get('dept');   // p.ej. ?mock=105&dept=sistemas para probar el tema matrix
         show('dashboard');
-        renderDashboard(mapApiResponse(buildMockPerfiles(Number(mockPct)), 'mock'));
+        renderDashboard(mapApiResponse(buildMockPerfiles(Number(mockPct), dept), 'mock'));
         return;
     }
 
@@ -285,6 +342,7 @@ function showNotFound(titulo, mensaje) {
 /* Pinta todo el tablero a partir del resultado de mapApiResponse:
    perfil (fijo) + selector de semanas + la semana más reciente ya seleccionada. */
 function renderDashboard(data) {
+    applyDepartmentTheme(data.perfil);
     renderProfile(data.perfil);
     setupWeekSelector(data.semanas);
     renderSemana(data.semanas[0]);
@@ -571,16 +629,19 @@ const Fireworks = (() => {
     const MAX_PARTICLES = 800;
 
     function resize() {
-        // Se ajusta al tamaño real de la tarjeta que lo contiene.
-        canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
+        // El lienzo cubre todo el viewport; sus coordenadas coinciden con
+        // las de getBoundingClientRect(), lo que permite anclar los cohetes a la tarjeta.
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
     }
 
     /* Lanza un cohete desde el borde inferior de la tarjeta hacia arriba. */
     function launchRocket() {
-        const startY = canvas.height - CARD_BOTTOM_OFFSET;        // borde inferior de la tarjeta
-        const startX = SIDE_INSET + Math.random() * (canvas.width - SIDE_INSET * 2);
-        const targetY = 30 + Math.random() * 170;                 // altura de explosión (arriba de la tarjeta)
+        // Posición real de la tarjeta contenedora dentro del viewport.
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const startY = rect.bottom - CARD_BOTTOM_OFFSET;                        // borde inferior de la tarjeta
+        const startX = rect.left + SIDE_INSET + Math.random() * (rect.width - SIDE_INSET * 2);
+        const targetY = Math.max(20, rect.top - 40 - Math.random() * 170);      // altura de explosión (arriba de la tarjeta)
         rockets.push({
             x: startX,
             y: startY,
@@ -719,6 +780,84 @@ const Fireworks = (() => {
 
 function launchFireworks(durationMs) { Fireworks.start(durationMs); }
 function stopFireworks()             { Fireworks.stop(); }
+
+/* =========================================================
+   LLUVIA DIGITAL «MATRIX»  (fondo del tema exclusivo de Sistemas)
+   Canvas a pantalla completa detrás del contenido; solo corre
+   mientras el tema matrix está activo (ver applyTheme/MatrixRain.toggle).
+   ========================================================= */
+const MatrixRain = (() => {
+    const CHARS = 'アカサタナハマヤラワ0123456789ABCDEFﾊﾐﾋｷｼｽｾｿ<>*+=#'.split('');
+    const FONT = 16;
+    const STEP_MS = 110;   // ms entre avances de la lluvia (mayor = más lento)
+    let canvas, ctx, cols = 0, drops = [], rafId = null, running = false, listenerAdded = false;
+    let lastStep = 0;
+
+    function ensure() {
+        canvas = document.getElementById('matrix-rain');
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+            canvas.id = 'matrix-rain';
+            canvas.setAttribute('aria-hidden', 'true');
+            document.body.insertBefore(canvas, document.body.firstChild);
+        }
+        ctx = canvas.getContext('2d');
+    }
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        cols = Math.ceil(canvas.width / FONT);
+        // Cada columna arranca en una altura aleatoria (fuera de pantalla) para un flujo desfasado.
+        drops = Array.from({ length: cols }, () => Math.floor(Math.random() * -50));
+    }
+
+    function frame(ts) {
+        // Avanza solo cada STEP_MS para lograr una caída lenta, independiente del
+        // refresco de la pantalla (requestAnimationFrame sigue pausando al perder foco).
+        if (ts - lastStep >= STEP_MS) {
+            lastStep = ts;
+
+            // Rastro: negro translúcido que desvanece los caracteres previos y deja estela.
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.07)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = FONT + 'px monospace';
+
+            for (let i = 0; i < cols; i++) {
+                const ch = CHARS[(Math.random() * CHARS.length) | 0];
+                const x = i * FONT;
+                const y = drops[i] * FONT;
+                // La cabeza de cada columna brilla más que la estela.
+                ctx.fillStyle = Math.random() > 0.975 ? '#bbf7d0' : '#22c55e';
+                ctx.fillText(ch, x, y);
+                if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        if (running) rafId = requestAnimationFrame(frame);
+    }
+
+    function start() {
+        if (running) return;
+        ensure();
+        resize();
+        if (!listenerAdded) { window.addEventListener('resize', resize); listenerAdded = true; }
+        canvas.style.display = 'block';
+        running = true;
+        lastStep = 0;   // el primer frame dibuja de inmediato
+        rafId = requestAnimationFrame(frame);
+    }
+
+    function stop() {
+        running = false;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        if (canvas) canvas.style.display = 'none';
+    }
+
+    function toggle(on) { on ? start() : stop(); }
+
+    return { toggle };
+})();
 
 /* Inicio */
 document.addEventListener('DOMContentLoaded', loadData);
