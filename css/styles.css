@@ -58,10 +58,12 @@ html.matrix body {
     font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Courier New", monospace;
 }
 
-/* Encabezado translúcido con línea inferior verde. */
+/* Encabezado translúcido con línea inferior verde. Se mantiene por encima del
+   resto del contenido para que el dropdown de temas no quede tapado. */
 html.matrix header {
     background: rgba(0, 12, 4, 0.88) !important;
     box-shadow: 0 1px 0 rgba(34, 197, 94, 0.4), 0 8px 24px rgba(0, 0, 0, 0.6);
+    z-index: 50 !important;
 }
 
 /* Tarjetas y paneles: negro verdoso translúcido con borde y glow verde
@@ -93,3 +95,219 @@ html.matrix #theme-toggle {
 html.matrix #theme-toggle:hover {
     background: rgba(6, 32, 14, 0.9) !important;
 }
+
+/* Dropdown de temas en tono terminal. */
+html.matrix #theme-dropdown {
+    background: rgba(3, 20, 8, 0.96) !important;
+    border-color: rgba(34, 197, 94, 0.5) !important;
+}
+html.matrix #theme-dropdown .theme-option {
+    color: #4ade80 !important;
+}
+html.matrix #theme-dropdown .theme-option:hover {
+    background: rgba(6, 32, 14, 0.9) !important;
+}
+
+/* =========================================================
+   TEMA SYNTHWAVE  (estética retro años 80 · disponible para todos)
+   Se construye sobre el modo oscuro (html.synthwave implica html.dark):
+   cielo nocturno degradado, un sol de neón sobre el horizonte y una
+   rejilla en perspectiva, todo resuelto con CSS puro (sin canvas ni JS).
+   ========================================================= */
+html.synthwave body {
+    background: linear-gradient(180deg,
+                #0d0221 0%, #1a0b2e 38%, #2a1245 62%, #3d1259 100%) !important;
+}
+
+/* El contenido de la página queda por encima del sol y la rejilla de fondo
+   (que viven en los pseudo-elementos de <body>, z-index 0). */
+html.synthwave body > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Sol de neón: disco degradado con resplandor, asentado sobre el horizonte. */
+html.synthwave body::after {
+    content: "";
+    position: fixed;
+    left: 50%;
+    bottom: 34vh;
+    width: 260px;
+    height: 260px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: linear-gradient(180deg,
+                #ffe580 0%, #ff8a5b 42%, #ff2e97 74%, #b967ff 100%);
+    box-shadow: 0 0 70px 18px rgba(255, 46, 151, 0.4);
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Rejilla en perspectiva: líneas de neón que se alejan hacia el horizonte. */
+html.synthwave body::before {
+    content: "";
+    position: fixed;
+    left: -50%;
+    right: -50%;
+    bottom: 0;
+    height: 42vh;
+    background-image:
+        linear-gradient(rgba(5, 217, 232, 0.55) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 46, 151, 0.45) 1px, transparent 1px);
+    background-size: 44px 44px;
+    transform: perspective(320px) rotateX(62deg);
+    transform-origin: bottom center;
+    -webkit-mask-image: linear-gradient(transparent, #000 55%);
+            mask-image: linear-gradient(transparent, #000 55%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Encabezado translúcido con línea inferior rosa neón. Se mantiene por encima
+   del resto del contenido para que el dropdown de temas no quede tapado. */
+html.synthwave header {
+    background: rgba(13, 2, 33, 0.85) !important;
+    box-shadow: 0 1px 0 rgba(255, 46, 151, 0.5), 0 8px 24px rgba(0, 0, 0, 0.6);
+    z-index: 50 !important;
+}
+
+/* Tarjetas y paneles: violeta nocturno translúcido con borde y glow neón. */
+html.synthwave section,
+html.synthwave #not-found .bg-white {
+    background: rgba(26, 11, 46, 0.8) !important;
+    border-color: rgba(255, 46, 151, 0.4) !important;
+    box-shadow: 0 0 0 1px rgba(5, 217, 232, 0.15),
+                0 0 26px rgba(185, 103, 255, 0.28) !important;
+    backdrop-filter: blur(3px);
+}
+
+/* Títulos y cifras destacadas en cian neón con resplandor rosado. */
+html.synthwave #profile-name,
+html.synthwave #week-title,
+html.synthwave #progress-pct,
+html.synthwave section h2 {
+    color: #22d3ee !important;
+    text-shadow: 0 0 8px rgba(5, 217, 232, 0.6), 0 0 3px rgba(255, 46, 151, 0.45);
+}
+
+/* Botón de tema en tono neón. */
+html.synthwave #theme-toggle {
+    background: rgba(26, 11, 46, 0.85) !important;
+    border-color: rgba(255, 46, 151, 0.55) !important;
+    color: #ff71ce !important;
+}
+html.synthwave #theme-toggle:hover {
+    background: rgba(45, 18, 74, 0.9) !important;
+}
+
+/* Dropdown de temas en tono neón. */
+html.synthwave #theme-dropdown {
+    background: rgba(26, 11, 46, 0.96) !important;
+    border-color: rgba(255, 46, 151, 0.5) !important;
+}
+html.synthwave #theme-dropdown .theme-option {
+    color: #ff71ce !important;
+}
+html.synthwave #theme-dropdown .theme-option:hover {
+    background: rgba(45, 18, 74, 0.9) !important;
+}
+
+/* =========================================================
+   TEMA GALAXY  (espacio profundo · exclusivo de Sistemas)
+   Se construye sobre el modo oscuro: cielo nocturno degradado con un
+   campo de estrellas titilantes y una nebulosa violeta, todo con CSS puro.
+   ========================================================= */
+html.galaxy body {
+    background: radial-gradient(ellipse at 50% 0%, #1b1145 0%, #0b0821 45%, #05030f 100%) !important;
+}
+
+/* El contenido queda por encima de las estrellas y la nebulosa (pseudo-elementos). */
+html.galaxy body > * {
+    position: relative;
+    z-index: 1;
+}
+html.galaxy header { z-index: 50 !important; }
+
+/* Campo de estrellas: varias capas de puntos con parpadeo suave. */
+html.galaxy body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+        radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 75% 15%, #c7d2fe, transparent),
+        radial-gradient(1px 1px at 40% 70%, #fff, transparent),
+        radial-gradient(1px 1px at 90% 60%, #a5b4fc, transparent),
+        radial-gradient(1.5px 1.5px at 60% 45%, #fff, transparent),
+        radial-gradient(1px 1px at 10% 80%, #e0e7ff, transparent),
+        radial-gradient(1px 1px at 85% 85%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 30% 10%, #c7d2fe, transparent);
+    background-repeat: repeat;
+    background-size: 350px 350px;
+    animation: galaxyTwinkle 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Nebulosa: resplandor violeta/índigo difuso en la parte superior. */
+html.galaxy body::after {
+    content: "";
+    position: fixed;
+    top: -10vh;
+    left: 50%;
+    width: 90vw;
+    height: 60vh;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center,
+                rgba(139, 92, 246, 0.28) 0%, rgba(59, 130, 246, 0.12) 40%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes galaxyTwinkle {
+    0%, 100% { opacity: 0.85; }
+    50%      { opacity: 0.45; }
+}
+
+html.galaxy header {
+    background: rgba(11, 8, 33, 0.85) !important;
+    box-shadow: 0 1px 0 rgba(139, 92, 246, 0.4), 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+html.galaxy section,
+html.galaxy #not-found .bg-white {
+    background: rgba(17, 13, 44, 0.78) !important;
+    border-color: rgba(139, 92, 246, 0.35) !important;
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.15),
+                0 0 26px rgba(139, 92, 246, 0.25) !important;
+    backdrop-filter: blur(3px);
+}
+
+html.galaxy #profile-name,
+html.galaxy #week-title,
+html.galaxy #progress-pct,
+html.galaxy section h2 {
+    color: #c4b5fd !important;
+    text-shadow: 0 0 8px rgba(139, 92, 246, 0.55);
+}
+
+html.galaxy #theme-toggle {
+    background: rgba(17, 13, 44, 0.85) !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    color: #c4b5fd !important;
+}
+html.galaxy #theme-toggle:hover {
+    background: rgba(30, 22, 66, 0.9) !important;
+}
+html.galaxy #theme-dropdown {
+    background: rgba(17, 13, 44, 0.96) !important;
+    border-color: rgba(139, 92, 246, 0.5) !important;
+}
+html.galaxy #theme-dropdown .theme-option {
+    color: #c4b5fd !important;
+}
+html.galaxy #theme-dropdown .theme-option:hover {
+    background: rgba(30, 22, 66, 0.9) !important;
+}
+
