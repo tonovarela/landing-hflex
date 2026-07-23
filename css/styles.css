@@ -19,7 +19,7 @@
     width: 100vw;
     height: 100vh;
     pointer-events: none;
-    z-index: 30;
+    z-index: 60;   /* por encima del header (z-50) para que las partículas no queden tapadas */
 }
 
 /* Pequeño destello en la barra cuando se completa por encima del 100% */

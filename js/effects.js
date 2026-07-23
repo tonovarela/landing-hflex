@@ -12,6 +12,11 @@ const Fireworks = (() => {
     const CARD_BOTTOM_OFFSET = 40;   // el lienzo sobresale 40px bajo la tarjeta
     const SIDE_INSET = 80;           // margen lateral del lienzo respecto a la tarjeta
 
+    // Margen de seguridad respecto a los bordes del viewport: la explosión nunca
+    // se centra más allá de este margen, para que las chispas no se recorten.
+    const SAFE_TOP = 160;            // no explotar por encima de este alto (deja aire arriba)
+    const SIDE_MARGIN = 140;         // no explotar tan al borde lateral
+
     // Topes de seguridad para que nunca se acumulen demasiadas animaciones.
     const MAX_ROCKETS = 10;
     const MAX_PARTICLES = 800;
@@ -28,8 +33,12 @@ const Fireworks = (() => {
         // Posición real de la tarjeta contenedora dentro del viewport.
         const rect = canvas.parentElement.getBoundingClientRect();
         const startY = rect.bottom - CARD_BOTTOM_OFFSET;                        // borde inferior de la tarjeta
-        const startX = rect.left + SIDE_INSET + Math.random() * (rect.width - SIDE_INSET * 2);
-        const targetY = Math.max(20, rect.top - 40 - Math.random() * 170);      // altura de explosión (arriba de la tarjeta)
+        const rawStartX = rect.left + SIDE_INSET + Math.random() * (rect.width - SIDE_INSET * 2);
+        // Mantiene el despegue (y por tanto la explosión) dentro de un margen lateral seguro.
+        const startX = Math.min(Math.max(rawStartX, SIDE_MARGIN), canvas.width - SIDE_MARGIN);
+        // Altura de explosión: arriba de la tarjeta, pero sin superar SAFE_TOP
+        // para que la mitad superior de la explosión no se salga de la pantalla.
+        const targetY = Math.max(SAFE_TOP, rect.top - 40 - Math.random() * 120);
         rockets.push({
             x: startX,
             y: startY,
@@ -70,13 +79,13 @@ const Fireworks = (() => {
         const n = 50 + ((Math.random() * 30) | 0);
         for (let i = 0; i < n; i++) {
             const angle = (Math.PI * 2 * i) / n;
-            const speed = 2.5 + Math.random() * 5.5;   // mayor expansión
+            const speed = 2 + Math.random() * 3.5;     // expansión contenida (no se sale de pantalla)
             particles.push({
                 x, y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: 1,
-                decay: 0.008 + Math.random() * 0.01,   // viven más -> llegan más lejos
+                decay: 0.012 + Math.random() * 0.012,  // se apagan un poco antes -> llegan menos lejos
                 color,
                 size: 1.4 + Math.random() * 2.2
             });
