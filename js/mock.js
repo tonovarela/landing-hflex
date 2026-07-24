@@ -24,7 +24,7 @@ function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabaja
         Departamento: dept || `PRUEBA UI · ${porcentaje}%`,
         id_personal: 'mock',
         NumSemana: numSemana,
-        tieTrabajar: tieTrabajar,   // alimenta la tarjeta "Horas Esperadas" (independiente del 47.5)
+        tieTrabajar: tieTrabajar,   // horas a trabajar de la semana: alimenta la tarjeta "Diferencia"
         tieTrabajado: registradas,
         hrsVac: hrsVac,
         numRetardos: 1,

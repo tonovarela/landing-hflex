@@ -63,16 +63,22 @@ function renderWeek(s) {
     document.getElementById('week-title').textContent = s.titulo ?? 'Semana Flexible';
 
     const pct = Number(s.porcentaje ?? 0);
-    document.getElementById('progress-pct').textContent = pct.toFixed(1) + '%';
+
+    // El total registrado vive en esta línea (no se repite como tarjeta abajo).
     document.getElementById('progress-label').textContent =
-        `${s.horasRegistradas ?? '—'} de ${s.horasEsperadas ?? '—'} horas`;
+        `${decimalAHoras(s.horasRegistradas)} de ${decimalAHoras(s.horasEsperadas)}`;
 
     const bar = document.getElementById('progress-bar');
 
-    // Color según el porcentaje alcanzado (barra y "Total Registradas" comparten color):
+    // Color según el porcentaje alcanzado (barra y porcentaje comparten color):
     //   < 50%  -> rojo   | 51%–75% -> amarillo | >= 76% -> verde
     const barBg   = pct < 50 ? 'bg-red-500'   : pct <= 75 ? 'bg-yellow-400' : 'bg-green-500';
     const barText = pct < 50 ? 'text-red-500' : pct <= 75 ? 'text-yellow-500' : 'text-green-500';
+
+    const pctEl = document.getElementById('progress-pct');
+    pctEl.textContent = pct.toFixed(1) + '%';
+    // Mismas clases que en index.html (el color es lo único que cambia aquí).
+    pctEl.className = `shrink-0 text-2xl sm:text-3xl font-semibold tabular-nums leading-none ${barText}`;
 
     bar.classList.remove('bg-brand-green', 'bg-red-500', 'bg-yellow-400', 'bg-green-500', 'bar-complete');
     bar.classList.add(barBg);
@@ -80,32 +86,58 @@ function renderWeek(s) {
     bar.style.width = '0%';
     requestAnimationFrame(() => { bar.style.width = Math.min(pct, 100) + '%'; });
 
-    // Fuegos artificiales cuando las horas registradas superan las esperadas.
+    // Fuegos artificiales a partir del 100% (horas registradas >= esperadas).
+    // Se usa 99.95 porque el porcentaje se muestra redondeado a un decimal: así,
+    // todo lo que la tarjeta anuncia como "100.0%" lanza el efecto.
     // La animación dura 5 segundos y luego se detiene sola.
-    const registradas = Number(s.horasRegistradas);
-    const esperadas   = Number(s.horasEsperadas);
-    if (isFinite(registradas) && isFinite(esperadas) && registradas > esperadas) {
+    if (isFinite(pct) && pct >= 99.95) {
         bar.classList.add('bar-complete');
         launchFireworks(5000);
     } else {
         stopFireworks();
     }
 
-    const st = s.stats || {};
+    const st   = s.stats || {};
+    const dif  = diferenciaHoras(s.diferencia);
+    const neutro = 'text-slate-800 dark:text-slate-100';
+    // Primera fila: todo lo relacionado con horas. Segunda fila: incidencias.
     const cards = [
-        { label: 'Horas Esperadas',     value: st.horasEsperadas,     accent: 'text-slate-800 dark:text-slate-100' },
-        { label: 'Horas Vacaciones',    value: st.horasVacaciones,    accent: 'text-slate-800 dark:text-slate-100' },
-        { label: 'Faltas',              value: st.faltas,             accent: 'text-slate-800 dark:text-slate-100' },
-        { label: 'Retardos',            value: st.retardos,           accent: 'text-slate-800 dark:text-slate-100' },
-        { label: 'Salidas Anticipadas', value: st.salidasAnticipadas, accent: 'text-slate-800 dark:text-slate-100' },
-        { label: 'Total Registradas',   value: st.totalRegistradas,   accent: barText }
+        { label: 'Horas Esperadas',     value: st.horasEsperadas,     accent: neutro, title: 'Jornada completa de la Semana Flexible (100%)' },
+        { label: 'Horas Reportadas',    value: st.horasReportadas,    accent: neutro, title: 'Horas trabajadas que reporta el servicio (tieTrabajado)' },
+        { label: 'Horas Vacaciones',    value: st.horasVacaciones,    accent: neutro },
+        // Móvil: al final, a todo el ancho y separada por una línea (order-last evita
+        // que quede un hueco a media rejilla). sm+: última columna completa, centrada.
+        { label: dif.label,             value: dif.value,             accent: dif.accent, title: dif.title,
+          cls: 'flex flex-col items-center justify-center text-center border-slate-100 dark:border-slate-700 ' +
+               'order-last col-span-2 border-t pt-4 ' +
+               'sm:order-none sm:col-span-1 sm:row-span-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4',
+          valueCls: 'text-2xl sm:text-3xl' },
+        { label: 'Faltas',              value: st.faltas,             accent: neutro },
+        { label: 'Retardos',            value: st.retardos,           accent: neutro },
+        { label: 'Salidas Anticipadas', value: st.salidasAnticipadas, accent: neutro }
     ];
     document.getElementById('stats-grid').innerHTML = cards.map(c => `
-        <div>
+        <div class="${c.cls ?? ''}"${c.title ? ` title="${c.title}"` : ''}>
             <p class="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">${c.label}</p>
-            <p class="mt-1 text-lg font-semibold ${c.accent} tabular-nums">${c.value ?? '—'}</p>
+            <p class="mt-0.5 ${c.valueCls ?? 'text-lg'} font-semibold ${c.accent} tabular-nums">${c.value ?? '—'}</p>
         </div>
     `).join('');
+}
+
+/* Diferencia entre las horas trabajadas y las que se debían trabajar esa semana.
+   Verde cuando sobran horas, ámbar cuando faltan y neutro cuando coinciden
+   (tolerancia de 1 minuto para no acusar redondeos). */
+function diferenciaHoras(d) {
+    const neutro = 'text-slate-800 dark:text-slate-100';
+    if (!d) return { label: 'Diferencia', value: '—', accent: neutro };
+
+    const delta      = toNum(d.registradas) - toNum(d.esperadas);
+    const tolerancia = 1 / 60;   // 1 minuto en horas
+    const title      = 'Horas reportadas menos horas esperadas';
+
+    if (delta >  tolerancia) return { label: 'Diferencia (a favor)',   value: '+' + decimalAHoras(delta), accent: 'text-green-500', title };
+    if (delta < -tolerancia) return { label: 'Diferencia (pendiente)', value: decimalAHoras(delta),       accent: 'text-amber-500', title };
+    return { label: 'Diferencia', value: decimalAHoras(0), accent: neutro, title };
 }
 
 /* Ícono de Home Office. Se muestra solo en los días cuyo nombre coincide con

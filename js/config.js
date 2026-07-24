@@ -8,8 +8,9 @@ const baseUrlFoto = "https://servicios.litoprocess.com/colaboradores/api/foto/";
 
 /* Jornada completa de la Semana Flexible: 47.5 horas equivalen al 100%.
    El porcentaje, la barra de avance y la etiqueta "X de 47.5 horas" se calculan
-   contra esta base fija. La tarjeta "Horas Esperadas", en cambio, muestra el valor
-   que envía el servicio (tieTrabajar). */
+   contra esta base fija, igual que la tarjeta "Horas Esperadas". La tarjeta
+   "Horas Reportadas", en cambio, muestra el valor que envía el servicio
+   (tieTrabajar), que puede ser menor en semanas con feriados. */
 const HORAS_SEMANA_COMPLETA = 47.5;
 
 /* =========================================================

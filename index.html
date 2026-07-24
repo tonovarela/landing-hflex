@@ -95,21 +95,23 @@
                 </section>
 
                 <!-- Tarjeta de resumen semanal -->
-                <section class="lg:col-span-2 relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 sm:p-8 transition-colors">
+                <section class="lg:col-span-2 relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 sm:p-6 transition-colors">
                     <!-- Lienzo para los fuegos artificiales (limitado a esta tarjeta) -->
                     <canvas id="fireworks-canvas" class="hidden"></canvas>
-                    <div class="flex items-end justify-between mb-6">
-                        <div>
+                    <div class="flex items-end justify-between gap-3 mb-4">
+                        <!-- min-w-0: deja que el título/selector se encojan antes de empujar al porcentaje -->
+                        <div class="min-w-0">
                             <div class="flex items-center gap-2">
-                                <h2 id="week-title" class="text-base font-medium text-slate-700 dark:text-slate-200">Semana Flexible</h2>
+                                <h2 id="week-title" class="text-sm sm:text-base font-medium text-slate-700 dark:text-slate-200 truncate">Semana Flexible</h2>
                                 <!-- Selector de semana: visible solo cuando el servicio devuelve más de una semana -->
                                 <select id="week-selector"
                                         aria-label="Seleccionar semana"
-                                        class="hidden text-base font-medium text-slate-700 dark:text-slate-200 bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg pl-2 pr-8 py-1 focus:outline-none focus:ring-2 focus:ring-brand-green cursor-pointer"></select>
+                                        class="hidden max-w-full text-sm sm:text-base font-medium text-slate-700 dark:text-slate-200 bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg pl-2 pr-8 py-1 focus:outline-none focus:ring-2 focus:ring-brand-green cursor-pointer"></select>
                             </div>
                             <p id="progress-label" class="mt-1 text-xs text-slate-400 dark:text-slate-500">— de — horas</p>
                         </div>
-                        <span id="progress-pct" class="text-3xl font-semibold text-slate-800 dark:text-slate-100 tabular-nums leading-none">0.0%</span>
+                        <!-- El color lo asigna renderWeek según el porcentaje alcanzado -->
+                        <span id="progress-pct" class="shrink-0 text-2xl sm:text-3xl font-semibold text-slate-800 dark:text-slate-100 tabular-nums leading-none">0.0%</span>
                     </div>
 
                     <div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
@@ -118,7 +120,11 @@
                              style="width: 0%"></div>
                     </div>
 
-                    <div id="stats-grid" class="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-4"></div>
+                    <!-- 7 tarjetas (ver renderWeek). En sm+: 3 de horas + 3 de incidencias en
+                         las tres primeras columnas y "Diferencia" ocupando la cuarta columna
+                         completa (las dos filas). En móvil: 2 columnas y "Diferencia" al final,
+                         a todo el ancho y separada por una línea. -->
+                    <div id="stats-grid" class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-4"></div>
                 </section>
             </div>
 
