@@ -3,10 +3,12 @@
    Pinta el tablero (perfil, selector de semanas, resumen y registros)
    a partir del resultado ya mapeado de la API.
    ========================================================= */
+import { toNum, decimalAHoras } from './utils.js';
+import { applyDepartmentTheme, launchFireworks, stopFireworks } from './theme.js';
 
 /* Pinta todo el tablero a partir del resultado de mapApiResponse:
    perfil (fijo) + selector de semanas + la semana más reciente ya seleccionada. */
-function renderDashboard(data) {
+export function renderDashboard(data) {
     applyDepartmentTheme(data.perfil);
     renderProfile(data.perfil);
     setupWeekSelector(data.semanas);

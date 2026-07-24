@@ -3,6 +3,8 @@
    Lectura de parámetros de la URL, llamada al servicio y adaptación de la
    respuesta "plana" al formato que consume el renderizado.
    ========================================================= */
+import { API_CONFIG, baseUrlFoto, HORAS_SEMANA_COMPLETA } from './config.js';
+import { toNum, decimalAHoras, diffHoras, normDia, homeOfficeDias, esDepartamentoSistemas } from './utils.js';
 
 function avatarUrl(nombre) {
     return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre || '') +
@@ -19,7 +21,7 @@ function fotoUrl(idPersonal) {
    - ?personal=<num>  -> personal.php (número de empleado directo; opcional)
    Ambos endpoints reciben el valor como ?id=. Si vienen los dos, 'personal' tiene
    prioridad. Devuelve { id, url } o null. */
-function getColaboradorParams() {
+export function getColaboradorParams() {
     const search   = new URLSearchParams(window.location.search);
     const personal = search.get(API_CONFIG.queryParamPersonal);
     if (personal) return { id: personal, url: API_CONFIG.baseUrlPersonal };
@@ -31,7 +33,7 @@ function getColaboradorParams() {
 /* Llama al servicio. Devuelve el resultado ya mapeado ({ perfil, semanas }).
    Lanza un error con .notFound = true cuando el colaborador no exista, o con
    .badRequest = true cuando el servicio responda 400. */
-async function fetchData({ id, url = API_CONFIG.baseUrl } = {}) {
+export async function fetchData({ id, url = API_CONFIG.baseUrl } = {}) {
     const requestUrl = url + '?' + new URLSearchParams({ id }).toString();
     const res = await fetch(requestUrl, { headers: API_CONFIG.headers });
     if (res.status === 404) { const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e; }
@@ -67,7 +69,7 @@ async function extraerMensajeError(res) {
    Normalizamos a un arreglo, mapeamos cada semana y las ordenamos de la más reciente a la más
    antigua (NumSemana descendente). Devolvemos los datos de la persona (iguales en
    todas las semanas) una sola vez, junto con el arreglo de semanas. */
-function mapApiResponse(perfilRaw, id) {
+export function mapApiResponse(perfilRaw, id) {
     const arr = (Array.isArray(perfilRaw) ? perfilRaw : [perfilRaw]).filter(Boolean);
     const semanas = arr.map(p => mapSemana(p, id));
     // Más reciente primero. Si NumSemana no es numérico, preserva el orden original.

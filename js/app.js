@@ -3,9 +3,17 @@
    Decide qué cargar según la URL (mock o servicio real), maneja los
    estados de error y arranca todo al cargar el DOM.
 
-   Orden de carga de módulos (ver index.html):
-     config -> utils -> effects -> theme -> api -> mock -> render -> app
+   Único módulo cargado desde index.html (<script type="module">); el resto
+   entra por sus imports, así que no hay variables en el ámbito global:
+     app -> render -> theme -> effects
+         -> api    -> config, utils
+         -> mock   -> config
    ========================================================= */
+import { show, hide, showError } from './utils.js';
+import { getColaboradorParams, fetchData, mapApiResponse } from './api.js';
+import { buildMockPerfiles } from './mock.js';
+import { renderDashboard } from './render.js';
+import { initTheme } from './theme.js';
 
 async function loadData() {
     hide('error-banner');
@@ -63,5 +71,17 @@ function showNotFound(titulo, mensaje) {
     show('not-found');
 }
 
-/* Inicio */
-document.addEventListener('DOMContentLoaded', loadData);
+/* Inicio: arranca la UI de temas, conecta el botón de reintento
+   (ya no hay un onclick inline que dependa del ámbito global) y carga los datos. */
+function init() {
+    initTheme();
+    document.getElementById('retry-button').addEventListener('click', loadData);
+    loadData();
+}
+
+/* Los módulos se ejecutan diferidos: si el DOM ya está listo, arranca de inmediato. */
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

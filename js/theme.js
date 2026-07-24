@@ -2,6 +2,8 @@
    TEMA (oscuro / claro / exclusivos de Sistemas) con persistencia
    en localStorage y menú desplegable.
    ========================================================= */
+import { Fireworks, MatrixRain } from './effects.js';
+
 const themeToggle   = document.getElementById('theme-toggle');
 const themeLabel    = document.getElementById('theme-label');
 const themeChevron  = document.getElementById('theme-chevron');
@@ -40,7 +42,7 @@ function availableThemes() {
         : ['light', 'dark'];
 }
 
-function currentTheme() {
+export function currentTheme() {
     const el = document.documentElement;
     for (const t of SISTEMAS_THEMES) {
         if (el.classList.contains(t)) return t;
@@ -79,7 +81,7 @@ function renderThemeMenu() {
 
 /* Aplica un tema: gestiona las clases del <html>, la persistencia,
    la lluvia digital del tema matrix y la UI del botón. */
-function applyTheme(name) {
+export function applyTheme(name) {
     const el = document.documentElement;
     el.classList.remove(...SISTEMAS_THEMES);
     if (SISTEMAS_THEMES.includes(name)) el.classList.add(name);
@@ -89,6 +91,15 @@ function applyTheme(name) {
     if (name === 'matrix') stopFireworks();   // el efecto de fuegos no aplica en matrix
     syncThemeUI();
 }
+
+/* Fuegos artificiales dependientes del tema: en matrix no se lanzan
+   (la lluvia digital es el efecto de fondo de ese tema). */
+export function launchFireworks(durationMs) {
+    if (currentTheme() === 'matrix') return;
+    Fireworks.start(durationMs);
+}
+
+export function stopFireworks() { Fireworks.stop(); }
 
 /* Abre / cierra el dropdown de temas. */
 function toggleThemeMenu(open) {
@@ -101,7 +112,7 @@ function toggleThemeMenu(open) {
 /* Habilita o no los temas de Sistemas (matrix / synthwave) según el
    departamento. Si no está autorizado pero venía en uno de ellos
    (localStorage), revierte a oscuro. Regenera el dropdown en cualquier caso. */
-function applyDepartmentTheme(perfil) {
+export function applyDepartmentTheme(perfil) {
     sistemasThemesAllowed = !!(perfil && perfil.esSistemas);
     const t = currentTheme();
     const esExclusivo = SISTEMAS_THEMES.includes(t);
@@ -114,27 +125,31 @@ function applyDepartmentTheme(perfil) {
     syncThemeUI();
 }
 
-/* ---------- Arranque de la UI de temas y sus eventos ---------- */
-renderThemeMenu();
-syncThemeUI();
+/* ---------- Arranque de la UI de temas y sus eventos ----------
+   Se invoca explícitamente desde app.js (el módulo no tiene efectos
+   secundarios al importarse). */
+export function initTheme() {
+    renderThemeMenu();
+    syncThemeUI();
 
-themeToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleThemeMenu();
-});
+    themeToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleThemeMenu();
+    });
 
-/* Selección de un tema desde el dropdown. */
-themeDropdown.addEventListener('click', (e) => {
-    const opt = e.target.closest('[data-theme]');
-    if (!opt) return;
-    applyTheme(opt.dataset.theme);
-    toggleThemeMenu(false);
-});
+    /* Selección de un tema desde el dropdown. */
+    themeDropdown.addEventListener('click', (e) => {
+        const opt = e.target.closest('[data-theme]');
+        if (!opt) return;
+        applyTheme(opt.dataset.theme);
+        toggleThemeMenu(false);
+    });
 
-/* Cierra el dropdown al hacer clic fuera o con Escape. */
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('#theme-menu')) toggleThemeMenu(false);
-});
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') toggleThemeMenu(false);
-});
+    /* Cierra el dropdown al hacer clic fuera o con Escape. */
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#theme-menu')) toggleThemeMenu(false);
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') toggleThemeMenu(false);
+    });
+}

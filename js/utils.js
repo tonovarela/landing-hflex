@@ -3,14 +3,14 @@
    Helpers puros (sin estado): formato de números/horas, parseo de fechas del
    servicio, normalización de días y atajos de DOM.
    ========================================================= */
-function fmtNum(n) { return (n === null || n === undefined) ? '—' : Number(n).toFixed(2); }
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+export function fmtNum(n) { return (n === null || n === undefined) ? '—' : Number(n).toFixed(2); }
+export function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 /* Convierte un valor a número seguro (la API a veces manda ".0" o strings). */
-function toNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
+export function toNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
 
 /* Horas decimales -> "H h M m"  (p.ej. 19.116 -> "19 h 7 m"). */
-function decimalAHoras(dec) {
+export function decimalAHoras(dec) {
     const n = toNum(dec);
     const sign = n < 0 ? '-' : '';
     const abs = Math.abs(n);
@@ -47,7 +47,7 @@ function parseFechaHora(str) {
 
 /* Normaliza un nombre de día para comparar sin importar mayúsculas ni acentos
    ("Miércoles" -> "miercoles"). */
-function normDia(str) {
+export function normDia(str) {
     return String(str ?? '').trim().toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -56,7 +56,7 @@ function normDia(str) {
    el/los NOMBRE(S) de día de la semana (p.ej. "Viernes"), no una fecha. Tolera una
    sola cadena, un arreglo o varios días separados por coma (puede haber más de un
    día de Home Office por semana). */
-function homeOfficeDias(p) {
+export function homeOfficeDias(p) {
     const set = new Set();
     let val = p.fechaHomeOffice;
     if (val == null) return set;
@@ -69,7 +69,7 @@ function homeOfficeDias(p) {
 }
 
 /* Diferencia entre entrada y salida -> "H h M m". Devuelve "0 h 0 m" si falta alguna. */
-function diffHoras(entrada, salida) {
+export function diffHoras(entrada, salida) {
     const a = parseFechaHora(entrada);
     const b = parseFechaHora(salida);
     if (a == null || b == null) return '0 h 0 m';
@@ -81,11 +81,11 @@ function diffHoras(entrada, salida) {
 }
 
 /* ¿El departamento corresponde a Sistemas / TI / Desarrollo? */
-function esDepartamentoSistemas(dep) {
+export function esDepartamentoSistemas(dep) {
     return /sistem|tecnolog|desarrollo|software|\bti\b|\bit\b/i.test(dep || '');
 }
 
 /* Atajos de visibilidad (clase 'hidden' de Tailwind). */
-function show(id) { document.getElementById(id).classList.remove('hidden'); }
-function hide(id) { document.getElementById(id).classList.add('hidden'); }
-function showError() { hide('dashboard'); show('error-banner'); }
+export function show(id) { document.getElementById(id).classList.remove('hidden'); }
+export function hide(id) { document.getElementById(id).classList.add('hidden'); }
+export function showError() { hide('dashboard'); show('error-banner'); }

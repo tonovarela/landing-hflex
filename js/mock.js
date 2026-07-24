@@ -4,6 +4,8 @@
    porcentaje dado. Uso: index.html?mock=40  (rojo),
    ?mock=60 (amarillo), ?mock=85 (verde), ?mock=105 (fuegos).
    ========================================================= */
+import { HORAS_SEMANA_COMPLETA } from './config.js';
+
 function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabajar, dept }) {
     // Porcentaje = tieTrabajado / 47.5 * 100. Para reproducir el pct pedido en
     // ?mock=, fijamos registradas = 47.5 * pct / 100.
@@ -45,7 +47,7 @@ function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabaja
 /* Genera varias semanas de prueba (arreglo, como la API real). La semana más
    reciente usa el porcentaje indicado en ?mock=; las anteriores traen datos fijos
    para poder probar el selector. */
-function buildMockPerfiles(pct, dept) {
+export function buildMockPerfiles(pct, dept) {
     return [
         buildMockSemana(pct, { numSemana: 28, lunes: new Date(2026, 6, 6),
             hrsVac: 8, tieTrabajar: 47.5, homeOffice: ['Martes', 'Jueves'], dept }),

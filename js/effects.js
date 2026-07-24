@@ -2,8 +2,11 @@
    FUEGOS ARTIFICIALES  (se lanzan al superar el 100%)
    Cohetes que despegan desde la tarjeta de Semana Flexible y
    explotan por encima de ella sobre un <canvas>.
+
+   Módulo sin dependencias: no sabe nada del tema activo. La regla de
+   "no lanzar fuegos en matrix" vive en theme.js (launchFireworks).
    ========================================================= */
-const Fireworks = (() => {
+export const Fireworks = (() => {
     let canvas, ctx, particles = [], rockets = [], rafId = null, running = false;
     let nextLaunchAt = 0, listenerAdded = false, stopTimer = null;
     const COLORS = ['#f43f5e', '#facc15', '#22c55e', '#38bdf8', '#a855f7', '#fb923c', '#ec4899'];
@@ -175,19 +178,12 @@ const Fireworks = (() => {
     return { start, stop };
 })();
 
-// En el tema matrix no se lanzan fuegos artificiales (la lluvia digital es el efecto de fondo).
-function launchFireworks(durationMs) {
-    if (currentTheme() === 'matrix') return;
-    Fireworks.start(durationMs);
-}
-function stopFireworks()             { Fireworks.stop(); }
-
 /* =========================================================
    LLUVIA DIGITAL «MATRIX»  (fondo del tema exclusivo de Sistemas)
    Canvas a pantalla completa detrás del contenido; solo corre
    mientras el tema matrix está activo (ver applyTheme/MatrixRain.toggle).
    ========================================================= */
-const MatrixRain = (() => {
+export const MatrixRain = (() => {
     const CHARS = 'アカサタナハマヤラワ0123456789ABCDEFﾊﾐﾋｷｼｽｾｿ<>*+=#'.split('');
     const FONT = 16;
     const STEP_MS = 110;   // ms entre avances de la lluvia (mayor = más lento)
