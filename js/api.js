@@ -175,12 +175,24 @@ export function agruparPorSemana(horasRaw) {
         if (!h) continue;
         const clave = String(h.NumSemana ?? '');
         if (!porSemana.has(clave)) porSemana.set(clave, []);
+
+        // Balance contra la jornada completa (47.5 h): lo que se trabajó de más
+        // (extra) o lo que faltó para completarla (falta). Solo uno de los dos
+        // es mayor que cero; ambos valen 0 cuando la jornada quedó exacta.
+        const horas = toNum(h.tieTrabajado);
+        const extra = Math.max(horas - HORAS_SEMANA_COMPLETA, 0);
+        const falta = Math.max(HORAS_SEMANA_COMPLETA - horas, 0);
+
         porSemana.get(clave).push({
             numEmpleado:    String(h.NumEmpleado ?? ''),
             nombre:         h.NombreEmpleado ?? '—',
             departamento:   h.Departamento ?? '—',
-            horas:          toNum(h.tieTrabajado),
-            horasTexto:     decimalAHoras(h.tieTrabajado),
+            horas,
+            horasTexto:     decimalAHoras(horas),
+            extra,
+            extraTexto:     extra > 0 ? decimalAHoras(extra) : '',
+            falta,
+            faltaTexto:     falta > 0 ? decimalAHoras(falta) : '',
             foto:           fotoUrl(h.NumEmpleado ?? ''),
             avatarFallback: avatarUrl(h.NombreEmpleado)
         });
@@ -196,14 +208,20 @@ export function agruparPorSemana(horasRaw) {
             e.posicion = posicion;
         });
 
-        const total = empleados.reduce((acc, e) => acc + e.horas, 0);
+        const total      = empleados.reduce((acc, e) => acc + e.horas, 0);
+        const totalExtra = empleados.reduce((acc, e) => acc + e.extra, 0);
         return {
             numSemana:  toNum(clave),
             titulo:     `Semana ${clave}`.trim(),
             empleados,
             maxHoras:   empleados.length ? empleados[0].horas : 0,
             promedio:   empleados.length ? total / empleados.length : 0,
-            totalHoras: total
+            totalHoras: total,
+            // Resumen del balance de la semana contra las 47.5 h.
+            conExtra:   empleados.filter(e => e.extra > 0).length,
+            conFalta:   empleados.filter(e => e.falta > 0).length,
+            totalExtra,
+            totalFalta: empleados.reduce((acc, e) => acc + e.falta, 0)
         };
     });
 

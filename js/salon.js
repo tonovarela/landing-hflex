@@ -7,7 +7,7 @@
    Los datos vienen de horas-trabajadas.php (ver fetchHorasTrabajadas en api.js)
    y se descargan una sola vez, la primera vez que se abre el panel.
    ========================================================= */
-import { tieneSalonFama } from './config.js';
+import { tieneSalonFama, HORAS_SEMANA_COMPLETA } from './config.js';
 import { fetchHorasTrabajadas } from './api.js';
 import { decimalAHoras, escapeHtml, normDia } from './utils.js';
 
@@ -203,19 +203,49 @@ function medallaChip(posicion) {
     return `<span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${m.chip}">${m.etiqueta}</span>`;
 }
 
-/* Tarjetas de resumen de la semana: colaboradores, promedio y líder. */
+/* Tarjetas de resumen de la semana: colaboradores, promedio, líder y el
+   balance acumulado contra la jornada completa (47.5 h). */
 function renderResumen(semana) {
     const lider = semana.empleados[0];
     const cards = [
         { label: 'Colaboradores', value: semana.empleados.length },
         { label: 'Promedio',      value: decimalAHoras(semana.promedio) },
-        { label: 'Máximo',        value: lider ? lider.horasTexto : '—' }
+        { label: 'Máximo',        value: lider ? lider.horasTexto : '—' },
+        { label: `Balance (${HORAS_SEMANA_COMPLETA} h)`,
+          value: semana.totalExtra > 0 ? '+' + decimalAHoras(semana.totalExtra) : '—',
+          nota:  `${semana.conExtra} con extra · ${semana.conFalta} por debajo`,
+          extra: semana.totalExtra > 0 }
     ];
     el('salon-summary').innerHTML = cards.map(c => `
         <div class="rounded-xl bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700 px-3 py-2.5 text-center">
             <p class="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">${c.label}</p>
-            <p class="mt-0.5 text-base font-semibold text-slate-800 dark:text-slate-100 tabular-nums">${c.value}</p>
+            <p class="mt-0.5 text-base font-semibold tabular-nums ${c.extra ? 'text-brand-green' : 'text-slate-800 dark:text-slate-100'}">${c.value}</p>
+            ${c.nota ? `<p class="text-[10px] text-slate-400 dark:text-slate-500">${escapeHtml(c.nota)}</p>` : ''}
         </div>`).join('');
+}
+
+/* Chip con el balance del colaborador contra la jornada completa (47.5 h):
+   en verde y con flecha arriba el tiempo que excedió, en ámbar y con flecha
+   abajo el que le faltó para completarla. Vacío cuando la jornada quedó exacta. */
+function balanceChip(e, clases = 'text-[11px] px-2 py-0.5') {
+    const excede = e.extra > 0;
+    const texto  = excede ? e.extraTexto : e.faltaTexto;
+    if (!texto) return '';
+
+    const estilo = excede
+        ? 'bg-brand-green/10 text-brand-green ring-brand-green/30'
+        : 'bg-amber-100 text-amber-700 ring-amber-300 dark:bg-amber-400/15 dark:text-amber-300 dark:ring-amber-400/30';
+    const flecha = excede ? 'M12 19V5m0 0l-6 6m6-6l6 6' : 'M12 5v14m0 0l-6-6m6 6l6-6';
+    const titulo = excede
+        ? `Tiempo por encima de las ${HORAS_SEMANA_COMPLETA} h de la jornada completa`
+        : `Tiempo que faltó para completar las ${HORAS_SEMANA_COMPLETA} h de la jornada`;
+
+    return `<span class="inline-flex items-center gap-1 rounded-full font-bold tabular-nums ring-1 ${clases} ${estilo}"
+                  title="${titulo}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="${flecha}"/>
+                </svg>${texto}
+            </span>`;
 }
 
 /* Podio de los tres primeros. En móvil van en columna (1, 2, 3); en sm+ se
@@ -241,6 +271,7 @@ function renderPodio(top) {
             <p class="mt-1.5 text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">${escapeHtml(e.nombre)}</p>
             <p class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">${escapeHtml(e.departamento)}</p>
             <p class="mt-2 text-lg font-semibold text-slate-800 dark:text-slate-100 tabular-nums">${e.horasTexto}</p>
+            <p class="mt-1 min-h-[1.25rem]">${balanceChip(e)}</p>
         </div>`;
     }).join('');
 }
@@ -272,6 +303,9 @@ function renderFila(e, maxHoras) {
                 <div class="h-full rounded-full bg-brand-green" style="width: ${ancho.toFixed(1)}%"></div>
             </div>
         </div>
-        <span class="shrink-0 text-sm font-semibold text-slate-700 dark:text-slate-200 tabular-nums">${e.horasTexto}</span>
+        <span class="shrink-0 flex flex-col items-end gap-0.5">
+            <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 tabular-nums">${e.horasTexto}</span>
+            ${balanceChip(e, 'text-[10px] px-1.5 py-0')}
+        </span>
     </li>`;
 }
