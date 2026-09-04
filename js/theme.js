@@ -9,8 +9,9 @@ const themeLabel    = document.getElementById('theme-label');
 const themeChevron  = document.getElementById('theme-chevron');
 const themeDropdown = document.getElementById('theme-dropdown');
 
-/* Los temas "matrix" y "synthwave" solo se habilitan para el departamento de
-   Sistemas. Arranca en false y se define al cargar los datos del colaborador. */
+/* Los temas exclusivos (matrix, synthwave, galaxy, blueprint, pandora) solo se
+   habilitan para el departamento de Sistemas. Arranca en false y se define al
+   cargar los datos del colaborador. */
 let sistemasThemesAllowed = false;
 
 const THEME_META = {
@@ -18,12 +19,14 @@ const THEME_META = {
     dark:      { label: 'Oscuro',    icon: 'icon-moon'      },
     matrix:    { label: 'Matrix',    icon: 'icon-matrix'    },
     synthwave: { label: 'SynthWave', icon: 'icon-synthwave' },
-    galaxy:    { label: 'Galaxia',   icon: 'icon-galaxy'    }
+    galaxy:    { label: 'Galaxia',   icon: 'icon-galaxy'    },
+    blueprint: { label: 'Blueprint', icon: 'icon-blueprint' },
+    pandora:   { label: 'Pandora',   icon: 'icon-pandora'   }
 };
 
 /* Temas "exclusivos" de Sistemas (los que no son light/dark). Todos se
    construyen sobre el modo oscuro. */
-const SISTEMAS_THEMES = ['matrix', 'synthwave', 'galaxy'];
+const SISTEMAS_THEMES = ['matrix', 'synthwave', 'galaxy', 'blueprint', 'pandora'];
 
 /* Marcado SVG de cada icono (para las opciones del dropdown). Coincide con los
    iconos del botón definidos en index.html. */
@@ -32,7 +35,9 @@ const THEME_ICON_SVG = {
     dark:      '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>',
     matrix:    '<rect x="3" y="4" width="18" height="16" rx="2" stroke-width="1.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 9l3 3-3 3M13.5 15H17"/>',
     synthwave: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 13a6 6 0 0112 0"/><path stroke-linecap="round" stroke-width="1.8" d="M8.5 10.5h7M7.5 13h9"/><path stroke-linecap="round" stroke-width="1.8" d="M3 17h4m3 0h4m3 0h4"/>',
-    galaxy:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 4c.6 3.4 1.6 4.4 5 5-3.4.6-4.4 1.6-5 5-.6-3.4-1.6-4.4-5-5 3.4-.6 4.4-1.6 5-5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M18.5 14.5c.25 1.4.65 1.8 2 2-1.35.2-1.75.6-2 2-.25-1.4-.65-1.8-2-2 1.35-.2 1.75-.6 2-2z"/>'
+    galaxy:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 4c.6 3.4 1.6 4.4 5 5-3.4.6-4.4 1.6-5 5-.6-3.4-1.6-4.4-5-5 3.4-.6 4.4-1.6 5-5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M18.5 14.5c.25 1.4.65 1.8 2 2-1.35.2-1.75.6-2 2-.25-1.4-.65-1.8-2-2 1.35-.2 1.75-.6 2-2z"/>',
+    blueprint: '<rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="1.6"/><path stroke-width="1.2" opacity=".55" d="M3 9.5h18M3 14.5h18M8.5 4v16M14 4v16"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6.5 17.5L12 8l5.5 9.5"/>',
+    pandora:   '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M12 3c2.9 3.3 4.5 5.6 4.5 7.7a4.5 4.5 0 01-9 0C7.5 8.6 9.1 6.3 12 3z"/><path stroke-linecap="round" stroke-width="1.6" d="M3 19c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0"/>'
 };
 
 /* Temas disponibles según el departamento (los exclusivos solo Sistemas). */
@@ -109,8 +114,7 @@ function toggleThemeMenu(open) {
     themeChevron.classList.toggle('rotate-180', isOpen);
 }
 
-/* Habilita o no los temas de Sistemas (matrix / synthwave) según el
-   departamento. Si no está autorizado pero venía en uno de ellos
+/* Habilita o no los temas de Sistemas según el departamento. Si no está autorizado pero venía en uno de ellos
    (localStorage), revierte a oscuro. Regenera el dropdown en cualquier caso. */
 export function applyDepartmentTheme(perfil) {
     sistemasThemesAllowed = !!(perfil && perfil.esSistemas);

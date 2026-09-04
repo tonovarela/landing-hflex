@@ -47,8 +47,10 @@
     z-index: 0;
 }
 
-/* El contenido de la página queda por encima de la lluvia digital. */
-html.matrix body > *:not(#matrix-rain) {
+/* El contenido de la página queda por encima de la lluvia digital.
+   Se excluye #salon-modal: es hijo directo de <body> y necesita conservar
+   su "position: fixed" y su z-index propio para cubrir toda la pantalla. */
+html.matrix body > *:not(#matrix-rain):not(#salon-modal) {
     position: relative;
     z-index: 1;
 }
@@ -120,8 +122,9 @@ html.synthwave body {
 }
 
 /* El contenido de la página queda por encima del sol y la rejilla de fondo
-   (que viven en los pseudo-elementos de <body>, z-index 0). */
-html.synthwave body > * {
+   (que viven en los pseudo-elementos de <body>, z-index 0).
+   #salon-modal queda fuera: conserva su "position: fixed" y su z-index. */
+html.synthwave body > *:not(#salon-modal) {
     position: relative;
     z-index: 1;
 }
@@ -222,8 +225,9 @@ html.galaxy body {
     background: radial-gradient(ellipse at 50% 0%, #1b1145 0%, #0b0821 45%, #05030f 100%) !important;
 }
 
-/* El contenido queda por encima de las estrellas y la nebulosa (pseudo-elementos). */
-html.galaxy body > * {
+/* El contenido queda por encima de las estrellas y la nebulosa (pseudo-elementos).
+   #salon-modal queda fuera: conserva su "position: fixed" y su z-index. */
+html.galaxy body > *:not(#salon-modal) {
     position: relative;
     z-index: 1;
 }
@@ -313,16 +317,234 @@ html.galaxy #theme-dropdown .theme-option:hover {
 
 
 /* =========================================================
-   SALÓN DE LA FAMA
-   El panel es una capa fija sobre toda la página. Los temas matrix,
-   synthwave y galaxy reposicionan los hijos directos de <body>
-   (position: relative; z-index: 1) para dejarlos por encima de sus
-   fondos animados; esa regla ganaría a las clases de Tailwind, así que
-   aquí se restituye la capa.
+   TEMA BLUEPRINT  (plano técnico · exclusivo de Sistemas)
+   Se construye sobre el modo oscuro: azul cobalto profundo, cuadrícula de
+   ingeniería (fina de 8px + gruesa de 40px) y trazos cian. Todo con CSS puro,
+   sin canvas ni JS, igual que synthwave y galaxy.
    ========================================================= */
-html.matrix    body > #salon-modal,
-html.synthwave body > #salon-modal,
-html.galaxy    body > #salon-modal {
+html.blueprint body {
+    background: radial-gradient(ellipse at 50% 0%, #0a1e3d 0%, #08192f 55%, #071630 100%) !important;
+}
+
+/* El contenido queda por encima de la cuadrícula y la viñeta (pseudo-elementos).
+   #salon-modal queda fuera: conserva su "position: fixed" y su z-index. */
+html.blueprint body > *:not(#salon-modal) {
+    position: relative;
+    z-index: 1;
+}
+
+/* Cuadrícula de plano: líneas finas cada 8px y líneas guía cada 40px. */
+html.blueprint body::before {
+    content: "";
     position: fixed;
-    z-index: 70;   /* por encima del header (50) y de los fuegos artificiales (60) */
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(125, 211, 252, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(125, 211, 252, 0.16) 1px, transparent 1px),
+        linear-gradient(rgba(125, 211, 252, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(125, 211, 252, 0.07) 1px, transparent 1px);
+    background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Viñeta: oscurece los bordes para que la cuadrícula no compita con el texto. */
+html.blueprint body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center,
+                transparent 35%, rgba(4, 12, 26, 0.55) 78%, rgba(3, 9, 20, 0.8) 100%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Encabezado azul tinta con línea inferior cian. Se mantiene por encima del
+   resto del contenido para que el dropdown de temas no quede tapado. */
+html.blueprint header {
+    background: rgba(7, 22, 48, 0.88) !important;
+    box-shadow: 0 1px 0 rgba(56, 189, 248, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55);
+    z-index: 50 !important;
+}
+
+/* Tarjetas y paneles: azul de plano translúcido con borde y glow cian. */
+html.blueprint section,
+html.blueprint #not-found .bg-white {
+    background: rgba(10, 30, 61, 0.78) !important;
+    border-color: rgba(56, 189, 248, 0.35) !important;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12),
+                0 0 26px rgba(14, 116, 190, 0.28) !important;
+    backdrop-filter: blur(3px);
+}
+
+/* Títulos y cifras destacadas en cian claro, con la tipografía técnica. */
+html.blueprint #profile-name,
+html.blueprint #week-title,
+html.blueprint #progress-pct,
+html.blueprint section h2 {
+    color: #7dd3fc !important;
+    text-shadow: 0 0 8px rgba(56, 189, 248, 0.45);
+}
+
+/* Monoespaciada solo en títulos y cifras (a diferencia de matrix, que la aplica
+   a todo el <body>): da el aire de plano sin restar legibilidad al texto. */
+html.blueprint #profile-name,
+html.blueprint #profile-role,
+html.blueprint #week-title,
+html.blueprint #progress-pct,
+html.blueprint section h2,
+html.blueprint .tabular-nums {
+    font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Courier New", monospace;
+}
+
+/* Botón de tema en tono plano. */
+html.blueprint #theme-toggle {
+    background: rgba(10, 30, 61, 0.85) !important;
+    border-color: rgba(56, 189, 248, 0.5) !important;
+    color: #7dd3fc !important;
+}
+html.blueprint #theme-toggle:hover {
+    background: rgba(16, 44, 84, 0.9) !important;
+}
+
+/* Dropdown de temas en tono plano. */
+html.blueprint #theme-dropdown {
+    background: rgba(10, 30, 61, 0.96) !important;
+    border-color: rgba(56, 189, 248, 0.5) !important;
+}
+html.blueprint #theme-dropdown .theme-option {
+    color: #7dd3fc !important;
+}
+html.blueprint #theme-dropdown .theme-option:hover {
+    background: rgba(16, 44, 84, 0.9) !important;
+}
+
+/* =========================================================
+   TEMA PANDORA  (océano bioluminiscente · exclusivo de Sistemas)
+   Guiño a "El Sentido del Agua": se construye sobre el modo oscuro con un
+   degradado que va de la superficie turquesa al abismo, rayos de luz que
+   descienden y esporas bioluminiscentes que flotan hacia arriba.
+   Todo con CSS puro, sin canvas ni JS.
+   ========================================================= */
+html.pandora body {
+    background: linear-gradient(180deg,
+                #064e63 0%, #04384d 32%, #022435 66%, #010f1b 100%) !important;
+}
+
+/* El contenido queda por encima de los rayos y las esporas (pseudo-elementos).
+   #salon-modal queda fuera: conserva su "position: fixed" y su z-index. */
+html.pandora body > *:not(#salon-modal) {
+    position: relative;
+    z-index: 1;
+}
+
+/* Rayos de luz filtrándose desde la superficie: haces inclinados que se
+   desvanecen con la profundidad y derivan muy lentamente. */
+html.pandora body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(101deg,
+                transparent 0 58px,
+                rgba(153, 246, 228, 0.055) 58px 76px,
+                transparent 76px 148px);
+    -webkit-mask-image: linear-gradient(#000 0%, rgba(0, 0, 0, 0.35) 45%, transparent 75%);
+            mask-image: linear-gradient(#000 0%, rgba(0, 0, 0, 0.35) 45%, transparent 75%);
+    animation: pandoraRays 14s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Esporas bioluminiscentes: puntos turquesa/cian que ascienden en bucle
+   mientras laten suavemente. */
+html.pandora body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+        radial-gradient(2px 2px at 15% 22%, #99f6e4, transparent),
+        radial-gradient(1.5px 1.5px at 68% 12%, #67e8f9, transparent),
+        radial-gradient(2.5px 2.5px at 38% 64%, #a5f3fc, transparent),
+        radial-gradient(1.5px 1.5px at 88% 48%, #5eead4, transparent),
+        radial-gradient(2px 2px at 55% 88%, #99f6e4, transparent),
+        radial-gradient(1.5px 1.5px at 8% 74%, #67e8f9, transparent),
+        radial-gradient(2px 2px at 78% 80%, #a5f3fc, transparent),
+        radial-gradient(1.5px 1.5px at 28% 36%, #5eead4, transparent);
+    background-repeat: repeat;
+    background-size: 420px 420px;
+    animation: pandoraMotes 26s linear infinite,
+               pandoraPulse 5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes pandoraRays {
+    0%   { background-position: 0 0;     opacity: 0.65; }
+    100% { background-position: 130px 0; opacity: 1; }
+}
+@keyframes pandoraMotes {
+    0%   { background-position: 0 0; }
+    100% { background-position: 0 -420px; }   /* igual al background-size: bucle continuo */
+}
+@keyframes pandoraPulse {
+    0%, 100% { opacity: 0.9; }
+    50%      { opacity: 0.5; }
+}
+
+/* Encabezado azul profundo con línea inferior turquesa. Se mantiene por encima
+   del resto del contenido para que el dropdown de temas no quede tapado. */
+html.pandora header {
+    background: rgba(3, 32, 46, 0.88) !important;
+    box-shadow: 0 1px 0 rgba(45, 212, 191, 0.45), 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 50 !important;
+}
+
+/* Tarjetas y paneles: agua profunda translúcida con borde y glow turquesa. */
+html.pandora section,
+html.pandora #not-found .bg-white {
+    background: rgba(4, 40, 56, 0.76) !important;
+    border-color: rgba(45, 212, 191, 0.35) !important;
+    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.12),
+                0 0 28px rgba(20, 184, 166, 0.25) !important;
+    backdrop-filter: blur(3px);
+}
+
+/* Títulos y cifras destacadas en turquesa bioluminiscente. */
+html.pandora #profile-name,
+html.pandora #week-title,
+html.pandora #progress-pct,
+html.pandora section h2 {
+    color: #5eead4 !important;
+    text-shadow: 0 0 9px rgba(45, 212, 191, 0.55), 0 0 3px rgba(103, 232, 249, 0.4);
+}
+
+/* Botón de tema en tono marino. */
+html.pandora #theme-toggle {
+    background: rgba(4, 40, 56, 0.85) !important;
+    border-color: rgba(45, 212, 191, 0.5) !important;
+    color: #5eead4 !important;
+}
+html.pandora #theme-toggle:hover {
+    background: rgba(6, 58, 78, 0.9) !important;
+}
+
+/* Dropdown de temas en tono marino. */
+html.pandora #theme-dropdown {
+    background: rgba(4, 40, 56, 0.96) !important;
+    border-color: rgba(45, 212, 191, 0.5) !important;
+}
+html.pandora #theme-dropdown .theme-option {
+    color: #5eead4 !important;
+}
+html.pandora #theme-dropdown .theme-option:hover {
+    background: rgba(6, 58, 78, 0.9) !important;
+}
+
+/* Este tema es el que más movimiento tiene: se detiene si el sistema pide
+   reducir animaciones (el fondo se conserva, solo deja de moverse). */
+@media (prefers-reduced-motion: reduce) {
+    html.pandora body::before,
+    html.pandora body::after {
+        animation: none;
+    }
 }
