@@ -311,3 +311,18 @@ html.galaxy #theme-dropdown .theme-option:hover {
     background: rgba(30, 22, 66, 0.9) !important;
 }
 
+
+/* =========================================================
+   SALÓN DE LA FAMA
+   El panel es una capa fija sobre toda la página. Los temas matrix,
+   synthwave y galaxy reposicionan los hijos directos de <body>
+   (position: relative; z-index: 1) para dejarlos por encima de sus
+   fondos animados; esa regla ganaría a las clases de Tailwind, así que
+   aquí se restituye la capa.
+   ========================================================= */
+html.matrix    body > #salon-modal,
+html.synthwave body > #salon-modal,
+html.galaxy    body > #salon-modal {
+    position: fixed;
+    z-index: 70;   /* por encima del header (50) y de los fuegos artificiales (60) */
+}

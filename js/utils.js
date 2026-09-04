@@ -85,6 +85,14 @@ export function esDepartamentoSistemas(dep) {
     return /sistem|tecnolog|desarrollo|software|\bti\b|\bit\b/i.test(dep || '');
 }
 
+/* Escapa el texto que se inyecta con innerHTML (nombres y departamentos del
+   servicio) para que ningún carácter especial rompa el marcado. */
+export function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+
 /* Atajos de visibilidad (clase 'hidden' de Tailwind). */
 export function show(id) { document.getElementById(id).classList.remove('hidden'); }
 export function hide(id) { document.getElementById(id).classList.add('hidden'); }

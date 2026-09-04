@@ -5,12 +5,14 @@
    ========================================================= */
 import { toNum, decimalAHoras } from './utils.js';
 import { applyDepartmentTheme, launchFireworks, stopFireworks } from './theme.js';
+import { setupSalonFama } from './salon.js';
 
 /* Pinta todo el tablero a partir del resultado de mapApiResponse:
    perfil (fijo) + selector de semanas + la semana más reciente ya seleccionada. */
 export function renderDashboard(data) {
     applyDepartmentTheme(data.perfil);
     renderProfile(data.perfil);
+    setupSalonFama(data.perfil);   // acceso extra: solo para los empleados autorizados
     setupWeekSelector(data.semanas);
     renderSemana(data.semanas[0]);
 }

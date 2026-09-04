@@ -115,6 +115,7 @@ function mapSemana(p, id) {
         perfil: {
             nombre: p.NombreEmpleado,
             puesto: p.Departamento,
+            numEmpleado: p.NumEmpleado ?? p.id_personal ?? id,
             esSistemas: esDepartamentoSistemas(p.Departamento),
             avatar: fotoUrl(p.NumEmpleado ?? p.id_personal ?? id),
             avatarFallback: avatarUrl(p.NombreEmpleado),
@@ -144,4 +145,68 @@ function mapSemana(p, id) {
         },
         registros
     };
+}
+
+/* =========================================================
+   SALÓN DE LA FAMA  (horas-trabajadas.php)
+   Listado global de colaboradores con sus horas trabajadas. El servicio
+   devuelve un arreglo plano con una entrada por colaborador y semana:
+     { NumSemana, Departamento, NumEmpleado, NombreEmpleado, tieTrabajado }
+   ========================================================= */
+
+/* Descarga el listado y lo devuelve agrupado por semana (ver agruparPorSemana). */
+export async function fetchHorasTrabajadas() {
+    const res = await fetch(API_CONFIG.baseUrlHoras, { headers: API_CONFIG.headers });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const json = await res.json();
+    if (json.error) throw new Error(typeof json.error === 'string' ? json.error : 'El servicio devolvió un error.');
+
+    return agruparPorSemana(json.horas);
+}
+
+/* Agrupa el arreglo plano en semanas ordenadas de la más reciente a la más
+   antigua. Dentro de cada semana, los colaboradores van de más a menos horas
+   trabajadas y con su posición ya calculada (empates comparten posición). */
+export function agruparPorSemana(horasRaw) {
+    const porSemana = new Map();
+
+    for (const h of (Array.isArray(horasRaw) ? horasRaw : [])) {
+        if (!h) continue;
+        const clave = String(h.NumSemana ?? '');
+        if (!porSemana.has(clave)) porSemana.set(clave, []);
+        porSemana.get(clave).push({
+            numEmpleado:    String(h.NumEmpleado ?? ''),
+            nombre:         h.NombreEmpleado ?? '—',
+            departamento:   h.Departamento ?? '—',
+            horas:          toNum(h.tieTrabajado),
+            horasTexto:     decimalAHoras(h.tieTrabajado),
+            foto:           fotoUrl(h.NumEmpleado ?? ''),
+            avatarFallback: avatarUrl(h.NombreEmpleado)
+        });
+    }
+
+    const semanas = [...porSemana.entries()].map(([clave, empleados]) => {
+        empleados.sort((a, b) => b.horas - a.horas);
+
+        // Posición con empates compartidos (1, 2, 2, 4...).
+        let posicion = 0;
+        empleados.forEach((e, i) => {
+            if (i === 0 || e.horas !== empleados[i - 1].horas) posicion = i + 1;
+            e.posicion = posicion;
+        });
+
+        const total = empleados.reduce((acc, e) => acc + e.horas, 0);
+        return {
+            numSemana:  toNum(clave),
+            titulo:     `Semana ${clave}`.trim(),
+            empleados,
+            maxHoras:   empleados.length ? empleados[0].horas : 0,
+            promedio:   empleados.length ? total / empleados.length : 0,
+            totalHoras: total
+        };
+    });
+
+    semanas.sort((a, b) => b.numSemana - a.numSemana);   // más reciente primero
+    return semanas;
 }

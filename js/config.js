@@ -4,6 +4,7 @@
    ========================================================= */
 const baseUrl = "https://servicios.litoprocess.com/perfil/api/perfil.php";
 const baseUrlPersonal = "https://servicios.litoprocess.com/perfil/api/personal.php";
+const baseUrlHoras = "https://servicios.litoprocess.com/perfil/api/horas-trabajadas.php";
 export const baseUrlFoto = "https://servicios.litoprocess.com/colaboradores/api/foto/";
 
 /* Jornada completa de la Semana Flexible: 47.5 horas equivalen al 100%.
@@ -23,7 +24,22 @@ export const API_CONFIG = {
     baseUrlPersonal: baseUrlPersonal, // personal.php -> ?id=<numEmpleado>
     queryParam: 'id',                 // parámetro por defecto en la URL de esta página
     queryParamPersonal: 'personal',   // parámetro opcional: número de empleado directo
+    baseUrlHoras: baseUrlHoras,       // horas-trabajadas.php -> listado global por semana
     // Sin cabeceras personalizadas: un GET con 'Content-Type' dispara un preflight
     // OPTIONS que la API responde con 400 y el navegador aborta la petición.
     headers: {}
 };
+
+/* =========================================================
+   SALÓN DE LA FAMA
+   Números de empleado autorizados a ver el listado global de horas
+   trabajadas (ranking por semana). Es un acceso extra que solo aparece
+   en la tarjeta de perfil de estos colaboradores.
+   ========================================================= */
+export const SALON_FAMA_EMPLEADOS = ['2801'];
+
+/* ¿Este número de empleado tiene acceso al Salón de la Fama? */
+export function tieneSalonFama(numEmpleado) {
+    if (numEmpleado === null || numEmpleado === undefined) return false;
+    return SALON_FAMA_EMPLEADOS.includes(String(numEmpleado).trim());
+}
