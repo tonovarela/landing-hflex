@@ -201,12 +201,19 @@ export function agruparPorSemana(horasRaw) {
     const semanas = [...porSemana.entries()].map(([clave, empleados]) => {
         empleados.sort((a, b) => b.horas - a.horas);
 
-        // Posición con empates compartidos (1, 2, 2, 4...).
+        // Solo compiten quienes ya registraron horas. Al arrancar la semana casi
+        // todos están en 0 y, como los empates comparten lugar, terminarían todos
+        // en el primer puesto (y en el podio) con 0 h.
+        const rankeados = empleados.filter(e => e.horas > 0);
+
+        // Posición con empates compartidos (1, 2, 2, 4...). Los de 0 h quedan
+        // fuera del ranking (posicion = null): van al final y sin medalla.
         let posicion = 0;
-        empleados.forEach((e, i) => {
-            if (i === 0 || e.horas !== empleados[i - 1].horas) posicion = i + 1;
+        rankeados.forEach((e, i) => {
+            if (i === 0 || e.horas !== rankeados[i - 1].horas) posicion = i + 1;
             e.posicion = posicion;
         });
+        empleados.forEach(e => { if (e.horas <= 0) e.posicion = null; });
 
         const total      = empleados.reduce((acc, e) => acc + e.horas, 0);
         const totalExtra = empleados.reduce((acc, e) => acc + e.extra, 0);
@@ -214,7 +221,9 @@ export function agruparPorSemana(horasRaw) {
             numSemana:  toNum(clave),
             titulo:     `Semana ${clave}`.trim(),
             empleados,
-            maxHoras:   empleados.length ? empleados[0].horas : 0,
+            // Podio: los tres primeros CON horas registradas (puede venir vacío).
+            podio:      rankeados.slice(0, 3),
+            maxHoras:   rankeados.length ? rankeados[0].horas : 0,
             promedio:   empleados.length ? total / empleados.length : 0,
             totalHoras: total,
             // Resumen del balance de la semana contra las 47.5 h.

@@ -136,21 +136,36 @@ function renderSemanaActual() {
         : semana.empleados;
 
     // El podio solo tiene sentido sobre el ranking completo: al buscar se oculta.
+    // Al arrancar la semana puede venir vacío (nadie ha registrado horas todavía).
     const podio = el('salon-podium');
-    podio.classList.toggle('hidden', !!filtro);
-    if (!filtro) podio.innerHTML = renderPodio(semana.empleados.slice(0, 3));
+    podio.classList.toggle('hidden', !!filtro || !semana.podio.length);
+    if (!filtro) podio.innerHTML = renderPodio(semana.podio);
 
     renderResumen(semana);
 
+    // Las barras solo crecen al abrir el panel o cambiar de semana; mientras se
+    // busca se pintan ya completas, para que no reinicien en cada tecla.
     el('salon-list').innerHTML = listados.length
-        ? listados.map(e => renderFila(e, semana.maxHoras)).join('')
+        ? listados.map((e, i) => renderFila(e, i, !filtro)).join('')
         : `<li class="py-10 text-center text-sm text-slate-400 dark:text-slate-500">
                Ningún colaborador coincide con "${escapeHtml(estado.filtro)}".
            </li>`;
+    animarBarras();
 
     el('salon-list-title').textContent = filtro
         ? `Resultados (${listados.length})`
         : `Ranking completo · ${semana.titulo}`;
+}
+
+/* Lanza las barras del ranking de 0% a su valor final. Se llama después de
+   insertar la lista: el doble requestAnimationFrame deja que el navegador
+   pinte el 0% inicial, para que la transición CSS sí tenga de dónde partir. */
+function animarBarras() {
+    const barras = el('salon-list').querySelectorAll('.salon-bar[data-ancho]');
+    if (!barras.length) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        barras.forEach(b => { b.style.width = b.dataset.ancho + '%'; });
+    }));
 }
 
 /* =========================================================
@@ -206,7 +221,7 @@ function medallaChip(posicion) {
 /* Tarjetas de resumen de la semana: colaboradores, promedio, líder y el
    balance acumulado contra la jornada completa (47.5 h). */
 function renderResumen(semana) {
-    const lider = semana.empleados[0];
+    const lider = semana.podio[0];
     const cards = [
         { label: 'Colaboradores', value: semana.empleados.length },
         { label: 'Promedio',      value: decimalAHoras(semana.promedio) },
@@ -276,16 +291,27 @@ function renderPodio(top) {
     }).join('');
 }
 
-/* Una fila del ranking completo. La barra es proporcional al líder de la semana. */
-function renderFila(e, maxHoras) {
+/* Una fila del ranking completo. La barra mide contra la jornada completa
+   (47.5 h = 100%): quien la excede se queda al 100% y solo cambia de color.
+   Se pinta en 0% y crece hasta 'data-ancho' cuando la lista ya está en el DOM
+   (ver animarBarras), con un pequeño retraso por fila para el efecto en cascada. */
+function renderFila(e, i = 0, animar = true) {
     const esYo = e.numEmpleado === estado.numEmpleado;
-    const ancho = maxHoras > 0 ? Math.max((e.horas / maxHoras) * 100, 2) : 0;
+    const retraso = Math.min(i * 30, 450);   // arranque en cascada, acotado
+    const pct   = HORAS_SEMANA_COMPLETA > 0 ? (e.horas / HORAS_SEMANA_COMPLETA) * 100 : 0;
+    const ancho = Math.min(pct, 100);
+    const excede = e.extra > 0;
+    const colorBarra = excede ? 'salon-bar-extra' : 'bg-brand-green';
+    const tituloBarra = excede
+        ? `${e.horasTexto} · por encima de las ${HORAS_SEMANA_COMPLETA} h de la jornada completa`
+        : `${e.horasTexto} de ${HORAS_SEMANA_COMPLETA} h (${pct.toFixed(1)}%)`;
 
     // Los tres primeros llevan su badge de medalla; el resto, el número a secas.
+    // Quien todavía no registra horas no tiene lugar: se muestra un guion.
     const posicion = MEDALLAS[e.posicion]
         ? medallaBadge(e.posicion, 'w-8 h-8')
         : `<span class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400
-                        text-xs font-bold flex items-center justify-center tabular-nums">${e.posicion}</span>`;
+                        text-xs font-bold flex items-center justify-center tabular-nums">${e.posicion ?? '—'}</span>`;
 
     return `
     <li class="flex items-center gap-3 py-2.5 px-2 rounded-xl transition-colors
@@ -299,8 +325,11 @@ function renderFila(e, maxHoras) {
                 ${escapeHtml(e.nombre)}${esYo ? '<span class="ml-1.5 text-[10px] font-bold text-brand-green uppercase">Tú</span>' : ''}
             </p>
             <p class="text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-wide truncate">${escapeHtml(e.departamento)}</p>
-            <div class="mt-1 h-1 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-                <div class="h-full rounded-full bg-brand-green" style="width: ${ancho.toFixed(1)}%"></div>
+            <div class="mt-1 h-1 rounded-full bg-slate-100 dark:bg-slate-700"
+                 title="${tituloBarra}" role="img" aria-label="${tituloBarra}">
+                <div class="salon-bar h-full rounded-full ${colorBarra}"
+                     ${animar ? `data-ancho="${ancho.toFixed(1)}" style="width: 0%; transition-delay: ${retraso}ms"`
+                              : `style="width: ${ancho.toFixed(1)}%"`}></div>
             </div>
         </div>
         <span class="shrink-0 flex flex-col items-end gap-0.5">
