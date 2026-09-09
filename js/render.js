@@ -130,17 +130,28 @@ function renderWeek(s) {
 
 /* Diferencia entre las horas trabajadas y las que se debían trabajar esa semana.
    Verde cuando sobran horas, ámbar cuando faltan y neutro cuando coinciden
-   (tolerancia de 1 minuto para no acusar redondeos). */
+   (tolerancia de 1 minuto para no acusar redondeos).
+   Cuando quedan horas pendientes se muestran las que faltan para alcanzar las
+   esperadas (en positivo), no la resta en negativo. */
 function diferenciaHoras(d) {
     const neutro = 'text-slate-800 dark:text-slate-100';
     if (!d) return { label: 'Diferencia', value: '—', accent: neutro };
 
-    const delta      = toNum(d.registradas) - toNum(d.esperadas);
+    const esperadas  = toNum(d.esperadas);
+    const delta      = toNum(d.registradas) - esperadas;
     const tolerancia = 1 / 60;   // 1 minuto en horas
     const title      = 'Horas reportadas menos horas esperadas';
 
-    if (delta >  tolerancia) return { label: 'Diferencia (a favor)',   value: '+' + decimalAHoras(delta), accent: 'text-green-500', title };
-    if (delta < -tolerancia) return { label: 'Diferencia (pendiente)', value: decimalAHoras(delta),       accent: 'text-amber-500', title };
+    if (delta > tolerancia) return { label: 'Diferencia (a favor)', value: '+' + decimalAHoras(delta), accent: 'text-green-500', title };
+    if (delta < -tolerancia) {
+        const faltan = -delta;
+        return {
+            label: 'Diferencia (pendiente)',
+            value: decimalAHoras(faltan),
+            accent: 'text-amber-500',
+            title: `Faltan ${decimalAHoras(faltan)} para alcanzar las ${decimalAHoras(esperadas)} esperadas`
+        };
+    }
     return { label: 'Diferencia', value: decimalAHoras(0), accent: neutro, title };
 }
 

@@ -83,7 +83,6 @@ export function mapApiResponse(perfilRaw, id) {
 /* Mapea UNA semana (objeto plano del servicio) al formato { perfil, semana, registros }. */
 function mapSemana(p, id) {
     const esperadas   = HORAS_SEMANA_COMPLETA;   // 47.5 h = 100% (base fija del porcentaje/barra)
-    const aTrabajar   = toNum(p.tieTrabajar);    // horas que el servicio pide trabajar esa semana
     const registradas = toNum(p.tieTrabajado);   // horas trabajadas según el servicio (= suma de checadas)
     const vacaciones         = toNum(p.hrsVac);
     const porcentaje         = esperadas > 0 ? (registradas / esperadas) * 100 : 0;
@@ -136,11 +135,11 @@ function mapSemana(p, id) {
                 retardos:           p.numRetardos ?? 0,
                 salidasAnticipadas: p.numSalAnt ?? 0
             },
-            // Comparativo: lo trabajado (tieTrabajado) contra lo que se debía trabajar
-            // (tieTrabajar; si el servicio no lo manda, la base de 47.5 h).
+            // Comparativo: las mismas cifras que muestran las tarjetas
+            // "Horas Esperadas" (base fija) y "Horas Reportadas" (tieTrabajado).
             diferencia: {
                 registradas,
-                esperadas: aTrabajar > 0 ? aTrabajar : esperadas
+                esperadas
             }
         },
         registros
