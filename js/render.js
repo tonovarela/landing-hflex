@@ -188,16 +188,34 @@ function homeOfficeIcon(activo) {
                  class="inline-block w-8 h-8 align-middle object-contain">`;
 }
 
+/* Ícono de Vacaciones. Se muestra en los días cuya fecha coincide con alguna
+   del arreglo 'vacaciones' del webservice (ver vacacionesDias en utils.js). */
+function vacacionIcon(activo) {
+    if (!activo) return '';
+    return `<span class="inline-flex items-center justify-center w-8 h-8 text-xl align-middle"
+                  role="img" aria-label="Vacaciones" title="Vacaciones">🏝️</span>`;
+}
+
+/* Un día es Home Office o Vacaciones, nunca ambos; de haber los dos (dato
+   inconsistente del servicio) se prioriza Vacaciones por ser la ausencia. */
+function estadoIcon(r) {
+    return r.vacacion ? vacacionIcon(true) : homeOfficeIcon(r.homeOffice);
+}
+
+// Jornada fija que se muestra como "Total" en un día de vacaciones (no viene
+// checada real: el día no se trabaja, así que no hay forma de calcularlo).
+const TOTAL_DIA_VACACION = '9 h 30 m';
+
 function renderRecords(records = []) {
     document.getElementById('records-body').innerHTML = records.map(r => `
         <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
             <td class="py-4 px-3 font-medium text-slate-700 dark:text-slate-200">${r.dia}</td>
-            <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.entrada ?? '—'}</td>
-            <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.salida ?? '—'}</td>
+            <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.vacacion ? 'VACACIONES' : (r.entrada ?? '—')}</td>
+            <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.vacacion ? 'VACACIONES' : (r.salida ?? '—')}</td>
             <td class="py-4 px-3 text-right whitespace-nowrap">
-                <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums align-middle">${r.total ?? '0 h 0 m'}</span>
+                <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums align-middle">${r.vacacion ? TOTAL_DIA_VACACION : (r.total ?? '0 h 0 m')}</span>
             </td>
-            <td class="py-4 px-3 text-center w-12">${homeOfficeIcon(r.homeOffice)}</td>
+            <td class="py-4 px-3 text-center w-12">${estadoIcon(r)}</td>
         </tr>
     `).join('');
 
@@ -206,18 +224,18 @@ function renderRecords(records = []) {
             <div class="flex items-center justify-between">
                 <span class="font-semibold text-slate-800 dark:text-slate-100">${r.dia}</span>
                 <span class="flex items-center gap-1.5">
-                    ${homeOfficeIcon(r.homeOffice)}
-                    <span class="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.total ?? '0 h 0 m'}</span>
+                    ${estadoIcon(r)}
+                    <span class="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.vacacion ? TOTAL_DIA_VACACION : (r.total ?? '0 h 0 m')}</span>
                 </span>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div>
                     <p class="text-slate-400 dark:text-slate-500 uppercase tracking-wide">Entrada</p>
-                    <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.entrada ?? '—'}</p>
+                    <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.vacacion ? 'Vacaciones' : (r.entrada ?? '—')}</p>
                 </div>
                 <div>
                     <p class="text-slate-400 dark:text-slate-500 uppercase tracking-wide">Salida</p>
-                    <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.salida ?? '—'}</p>
+                    <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.vacacion ? 'Vacaciones' : (r.salida ?? '—')}</p>
                 </div>
             </div>
         </div>

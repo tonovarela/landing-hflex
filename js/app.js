@@ -11,7 +11,7 @@
    ========================================================= */
 import { show, hide, showError } from './utils.js';
 import { getColaboradorParams, fetchData, mapApiResponse } from './api.js';
-import { buildMockPerfiles } from './mock.js';
+import { buildMockPerfiles, buildMockVacaciones } from './mock.js';
 import { renderDashboard } from './render.js';
 import { initTheme } from './theme.js';
 
@@ -25,7 +25,7 @@ async function loadData() {
     if (mockPct !== null) {
         const dept = params.get('dept');   // p.ej. ?mock=105&dept=sistemas para probar el tema matrix
         show('dashboard');
-        renderDashboard(mapApiResponse(buildMockPerfiles(Number(mockPct), dept), 'mock'));
+        renderDashboard(mapApiResponse(buildMockPerfiles(Number(mockPct), dept), 'mock', buildMockVacaciones()));
         return;
     }
 

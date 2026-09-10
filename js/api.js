@@ -4,7 +4,7 @@
    respuesta "plana" al formato que consume el renderizado.
    ========================================================= */
 import { API_CONFIG, baseUrlFoto, HORAS_SEMANA_COMPLETA } from './config.js';
-import { toNum, decimalAHoras, diffHoras, normDia, homeOfficeDias, esDepartamentoSistemas } from './utils.js';
+import { toNum, decimalAHoras, diffHoras, normDia, homeOfficeDias, vacacionesDias, esDepartamentoSistemas } from './utils.js';
 
 function avatarUrl(nombre) {
     return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre || '') +
@@ -48,7 +48,7 @@ export async function fetchData({ id, url = API_CONFIG.baseUrl } = {}) {
     if (json.error || sinPerfil) {
         const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e;
     }
-    return mapApiResponse(json.perfil, id);
+    return mapApiResponse(json.perfil, id, json.vacaciones);
 }
 
 /* Extrae el mensaje de error de una respuesta (JSON { error/mensaje } o texto plano). */
@@ -69,9 +69,9 @@ async function extraerMensajeError(res) {
    Normalizamos a un arreglo, mapeamos cada semana y las ordenamos de la más reciente a la más
    antigua (NumSemana descendente). Devolvemos los datos de la persona (iguales en
    todas las semanas) una sola vez, junto con el arreglo de semanas. */
-export function mapApiResponse(perfilRaw, id) {
+export function mapApiResponse(perfilRaw, id, vacacionesRaw = []) {
     const arr = (Array.isArray(perfilRaw) ? perfilRaw : [perfilRaw]).filter(Boolean);
-    const semanas = arr.map(p => mapSemana(p, id));
+    const semanas = arr.map(p => mapSemana(p, id, vacacionesRaw));
     // Más reciente primero. Si NumSemana no es numérico, preserva el orden original.
     semanas.sort((a, b) => b.numSemana - a.numSemana);
     return {
@@ -80,8 +80,11 @@ export function mapApiResponse(perfilRaw, id) {
     };
 }
 
-/* Mapea UNA semana (objeto plano del servicio) al formato { perfil, semana, registros }. */
-function mapSemana(p, id) {
+/* Mapea UNA semana (objeto plano del servicio) al formato { perfil, semana, registros }.
+   'vacacionesRaw' es el arreglo global de días de vacaciones (mismo para todas las
+   semanas del colaborador); vacacionesDias() se encarga de quedarse solo con los
+   que caen dentro de esta semana. */
+function mapSemana(p, id, vacacionesRaw = []) {
     const esperadas   = HORAS_SEMANA_COMPLETA;   // 47.5 h = 100% (base fija del porcentaje/barra)
     const registradas = toNum(p.tieTrabajado);   // horas trabajadas según el servicio (= suma de checadas)
     const vacaciones         = toNum(p.hrsVac);
@@ -100,13 +103,17 @@ function mapSemana(p, id) {
     // Home office: el servicio envía en 'fechaHomeOffice' el/los NOMBRE(S) de día de
     // la semana (p.ej. "Viernes"), no una fecha. Basta comparar contra el nombre de
     // cada día, aunque ese día no tenga checada (entrada/salida en null).
-    const hoDias = homeOfficeDias(p);
+    const hoDias  = homeOfficeDias(p);
+    // Vacaciones: 'vacacionesRaw' llega con fecha ('YYYY-MM-DD'), no con nombre de
+    // semana, así que vacacionesDias() ubica cuáles de esas fechas caen en esta semana.
+    const vacDias = vacacionesDias(p, vacacionesRaw);
 
     const registros = dias.map(({ dia, suf }) => {
         const entrada = p['E-' + suf] || null;
         const salida  = p['S-' + suf] || null;
         const homeOffice = hoDias.has(normDia(dia));
-        return { dia, entrada, salida, total: diffHoras(entrada, salida), homeOffice };
+        const vacacion   = vacDias.has(normDia(dia));
+        return { dia, entrada, salida, total: diffHoras(entrada, salida), homeOffice, vacacion };
     });
 
     return {

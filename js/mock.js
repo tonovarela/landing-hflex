@@ -57,3 +57,13 @@ export function buildMockPerfiles(pct, dept) {
             hrsVac: 16, tieTrabajar: 31.5, homeOffice: [], dept })   // semana con feriado: esperadas < 47.5
     ];
 }
+
+/* Arreglo global de vacaciones (como el que manda el servicio junto a 'perfil'):
+   una fila por día, con fecha absoluta ('YYYY-MM-DD') y sin indicar la semana.
+   El día de la semana 28 (lunes 6/jul/2026) cae en Lunes y Miércoles. */
+export function buildMockVacaciones() {
+    return [
+        { dia_semana: 'Lunes',     dia: '2026-07-06', personal: 'mock', id_solicitud: 'mock1' },
+        { dia_semana: 'Miércoles', dia: '2026-07-08', personal: 'mock', id_solicitud: 'mock2' }
+    ];
+}

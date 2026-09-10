@@ -68,6 +68,54 @@ export function homeOfficeDias(p) {
     return set;
 }
 
+/* Convierte una fecha del servicio SIN hora a Date (medianoche local).
+   Acepta 'DD/MM/YYYY' (checadas) y 'YYYY-MM-DD' (vacaciones). */
+function parseFechaSoloFecha(str) {
+    if (str == null) return null;
+    const s = String(str).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    return null;
+}
+
+const SUF_ORDEN = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'];   // 0 = lunes
+
+/* Lunes de la semana de 'p', deducido de la primera checada con fecha que
+   encuentre (retrocediendo su día de la semana). Null si la semana no tiene
+   ninguna checada (no hay forma de ubicarla en el calendario). */
+function lunesDeSemana(p) {
+    for (let i = 0; i < SUF_ORDEN.length; i++) {
+        const raw = p['E-' + SUF_ORDEN[i]] || p['S-' + SUF_ORDEN[i]];
+        const d = parseFechaSoloFecha(raw);
+        if (d) { d.setDate(d.getDate() - i); return d; }
+    }
+    return null;
+}
+
+/* Normaliza el arreglo global 'vacaciones' (llega junto a 'perfil', una fila por
+   día autorizado -con 'dia' en 'YYYY-MM-DD' y 'dia_semana' el nombre-, SIN
+   indicar a qué semana pertenece) a un Set con los nombres de día que caen
+   dentro de la semana de 'p'. Se ubica cada fila por fecha, comparándola contra
+   el lunes-domingo de esa semana, porque el mismo día de la semana se repite en
+   varias semanas. */
+export function vacacionesDias(p, vacacionesRaw) {
+    const set = new Set();
+    const lunes = lunesDeSemana(p);
+    if (!lunes || !Array.isArray(vacacionesRaw)) return set;
+
+    const desde = lunes.getTime();
+    const hasta = desde + 6 * 86400000;
+    for (const v of vacacionesRaw) {
+        const d = parseFechaSoloFecha(v && v.dia);
+        if (!d) continue;
+        const t = d.getTime();
+        if (t >= desde && t <= hasta) set.add(normDia(v.dia_semana));
+    }
+    return set;
+}
+
 /* Diferencia entre entrada y salida -> "H h M m". Devuelve "0 h 0 m" si falta alguna. */
 export function diffHoras(entrada, salida) {
     const a = parseFechaHora(entrada);
