@@ -179,6 +179,105 @@ export const Fireworks = (() => {
 })();
 
 /* =========================================================
+   LLUVIA GRIS  (contraparte de los fuegos artificiales: se lanza cuando
+   una semana pasada no llegó al mínimo de horas)
+   Gotas cayendo, recortadas a los límites de la tarjeta de Semana
+   Flexible, sobre un <canvas> propio a pantalla completa.
+
+   Módulo sin dependencias: no sabe nada del tema activo, igual que Fireworks.
+   ========================================================= */
+export const Rain = (() => {
+    let canvas, ctx, drops = [], rafId = null, running = false;
+    let nextSpawnAt = 0, listenerAdded = false, stopTimer = null;
+    const COLOR = 'rgba(148, 163, 184, 0.6)';   // slate-400, visible en claro y oscuro
+    const MAX_DROPS = 90;
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    // Rectángulo de la tarjeta contenedora: las gotas nacen y se recortan a él.
+    function cardRect() {
+        return canvas.parentElement.getBoundingClientRect();
+    }
+
+    function spawnDrop(rect) {
+        drops.push({
+            x: rect.left + Math.random() * rect.width,
+            y: rect.top - 12,
+            len: 8 + Math.random() * 10,
+            vy: 3.5 + Math.random() * 2.5,
+            alpha: 0.35 + Math.random() * 0.4
+        });
+    }
+
+    function maybeSpawn(ts, rect) {
+        if (!running || ts < nextSpawnAt) return;
+        if (drops.length < MAX_DROPS) spawnDrop(rect);
+        nextSpawnAt = ts + 35 + Math.random() * 45;   // llovizna: nacimientos frecuentes
+    }
+
+    function frame(ts) {
+        const rect = cardRect();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        maybeSpawn(ts, rect);
+
+        // Recorta el dibujo a la tarjeta: la lluvia "cae dentro" de ella, no del viewport.
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(rect.left, rect.top, rect.width, rect.height);
+        ctx.clip();
+
+        for (let i = drops.length - 1; i >= 0; i--) {
+            const d = drops[i];
+            d.y += d.vy;
+            if (d.y - d.len > rect.bottom) { drops.splice(i, 1); continue; }
+            ctx.globalAlpha = d.alpha;
+            ctx.strokeStyle = COLOR;
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(d.x, d.y);
+            ctx.lineTo(d.x, d.y - d.len);
+            ctx.stroke();
+        }
+        ctx.restore();
+        ctx.globalAlpha = 1;
+
+        if (running || drops.length) {
+            rafId = requestAnimationFrame(frame);
+        } else {
+            rafId = null;
+            canvas.classList.add('hidden');
+        }
+    }
+
+    function start(durationMs) {
+        if (running) return;
+        canvas = document.getElementById('rain-canvas');
+        ctx = canvas.getContext('2d');
+        canvas.classList.remove('hidden');
+        resize();
+        if (!listenerAdded) { window.addEventListener('resize', resize); listenerAdded = true; }
+        running = true;
+        nextSpawnAt = 0;
+        if (!rafId) rafId = requestAnimationFrame(frame);
+
+        if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; }
+        if (durationMs > 0) stopTimer = setTimeout(stop, durationMs);
+    }
+
+    function stop() {
+        running = false;
+        if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; }
+        // Las gotas en vuelo terminan de caer solas.
+    }
+
+    return { start, stop };
+})();
+
+/* =========================================================
    LLUVIA DIGITAL «MATRIX»  (fondo del tema exclusivo de Sistemas)
    Canvas a pantalla completa detrás del contenido; solo corre
    mientras el tema matrix está activo (ver applyTheme/MatrixRain.toggle).

@@ -125,6 +125,18 @@
                 <section class="lg:col-span-2 relative bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 sm:p-6 transition-colors">
                     <!-- Lienzo para los fuegos artificiales (limitado a esta tarjeta) -->
                     <canvas id="fireworks-canvas" class="hidden"></canvas>
+                    <!-- Lienzo para la lluvia gris (mínimo de horas no cubierto): se recorta a esta tarjeta -->
+                    <canvas id="rain-canvas" class="hidden"></canvas>
+                    <!-- Solo se muestra en semanas pasadas (no la actual) que no alcanzaron el mínimo de horas.
+                         Fila propia alineada a la derecha: así queda en la esquina superior sin pisar el % ni el título. -->
+                    <div class="flex justify-end">
+                        <span id="week-warning-badge"
+                              class="hidden mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md
+                                     bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400
+                                     text-[11px] font-semibold">
+                            No lograste cubrir el mínimo de horas
+                        </span>
+                    </div>
                     <div class="flex items-end justify-between gap-3 mb-4">
                         <!-- min-w-0: deja que el título/selector se encojan antes de empujar al porcentaje -->
                         <div class="min-w-0">

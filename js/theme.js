@@ -2,7 +2,7 @@
    TEMA (oscuro / claro / exclusivos de Sistemas) con persistencia
    en localStorage y menú desplegable.
    ========================================================= */
-import { Fireworks, MatrixRain } from './effects.js';
+import { Fireworks, Rain, MatrixRain } from './effects.js';
 
 const themeToggle   = document.getElementById('theme-toggle');
 const themeLabel    = document.getElementById('theme-label');
@@ -93,7 +93,7 @@ export function applyTheme(name) {
     el.classList.toggle('dark', name === 'dark' || SISTEMAS_THEMES.includes(name));
     localStorage.setItem('theme', name);
     MatrixRain.toggle(name === 'matrix');
-    if (name === 'matrix') stopFireworks();   // el efecto de fuegos no aplica en matrix
+    if (name === 'matrix') { stopFireworks(); stopRain(); }   // esos efectos no aplican en matrix
     syncThemeUI();
 }
 
@@ -105,6 +105,15 @@ export function launchFireworks(durationMs) {
 }
 
 export function stopFireworks() { Fireworks.stop(); }
+
+/* Lluvia gris (mínimo de horas no cubierto en una semana pasada). Misma
+   excepción que los fuegos: en matrix ya hay una lluvia de fondo propia. */
+export function launchRain(durationMs) {
+    if (currentTheme() === 'matrix') return;
+    Rain.start(durationMs);
+}
+
+export function stopRain() { Rain.stop(); }
 
 /* Abre / cierra el dropdown de temas. */
 function toggleThemeMenu(open) {

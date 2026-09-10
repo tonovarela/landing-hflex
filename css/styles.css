@@ -13,7 +13,8 @@
 }
 
 /* ===== Fuegos artificiales (lienzo a pantalla completa: las partículas nunca se recortan) ===== */
-#fireworks-canvas {
+#fireworks-canvas,
+#rain-canvas {
     position: fixed;
     inset: 0;                    /* cubre todo el viewport */
     width: 100vw;
@@ -29,6 +30,22 @@
 }
 .bar-complete {
     animation: barGlow 1.2s ease-in-out infinite;
+}
+
+/* Aviso de "no cubriste el mínimo de horas" en semanas pasadas: un pequeño
+   pop al aparecer para llamar la atención sin quedarse animando después. */
+@keyframes badgeWarningPop {
+    0%   { transform: scale(0.85); opacity: 0; }
+    60%  { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
+}
+.badge-min-hours {
+    animation: badgeWarningPop 0.4s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+    .badge-min-hours {
+        animation: none;
+    }
 }
 
 /* Barras del ranking del Salón de la Fama: se pintan en 0% y JS les asigna su

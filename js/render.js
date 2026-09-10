@@ -4,7 +4,7 @@
    a partir del resultado ya mapeado de la API.
    ========================================================= */
 import { toNum, decimalAHoras } from './utils.js';
-import { applyDepartmentTheme, launchFireworks, stopFireworks } from './theme.js';
+import { applyDepartmentTheme, launchFireworks, stopFireworks, launchRain, stopRain } from './theme.js';
 import { setupSalonFama } from './salon.js';
 
 /* Pinta todo el tablero a partir del resultado de mapApiResponse:
@@ -39,15 +39,18 @@ function setupWeekSelector(semanas = []) {
         .join('');
     sel.value = '0';   // 'semanas' viene ordenado: la más reciente es la primera
     sel.onchange = () => {
-        const s = semanas[Number(sel.value)];
-        if (s) renderSemana(s);
+        const i = Number(sel.value);
+        const s = semanas[i];
+        if (s) renderSemana(s, i === 0);
     };
 }
 
-/* Pinta el resumen y los registros de una semana concreta. */
-function renderSemana(s) {
+/* Pinta el resumen y los registros de una semana concreta.
+   'esActual' indica si es la semana vigente (siempre la primera del arreglo);
+   solo en semanas pasadas tiene sentido avisar que no se cubrió el mínimo. */
+function renderSemana(s, esActual = true) {
     if (!s) return;
-    renderWeek(s.semana);
+    renderWeek(s.semana, esActual);
     renderRecords(s.registros);
 }
 
@@ -63,7 +66,7 @@ function renderProfile(p) {
     status.classList.toggle('bg-slate-300', !p.enLinea);
 }
 
-function renderWeek(s) {
+function renderWeek(s, esActual = true) {
     document.getElementById('week-title').textContent = s.titulo ?? 'Semana Flexible';
 
     const pct = Number(s.porcentaje ?? 0);
@@ -74,10 +77,15 @@ function renderWeek(s) {
 
     const bar = document.getElementById('progress-bar');
 
+    // Semana pasada (no la actual) que no llegó al mínimo de horas: mismo umbral
+    // que los fuegos artificiales. Se calcula antes de fijar el color porque en
+    // ese caso la barra siempre se pinta en rojo, sin importar el porcentaje.
+    const noCubrioMinimo = !esActual && isFinite(pct) && pct < 99.95;
+
     // Color según el porcentaje alcanzado (barra y porcentaje comparten color):
     //   < 50%  -> rojo   | 51%–75% -> amarillo | >= 76% -> verde
-    const barBg   = pct < 50 ? 'bg-red-500'   : pct <= 75 ? 'bg-yellow-400' : 'bg-green-500';
-    const barText = pct < 50 ? 'text-red-500' : pct <= 75 ? 'text-yellow-500' : 'text-green-500';
+    const barBg   = noCubrioMinimo ? 'bg-red-500'   : pct < 50 ? 'bg-red-500'   : pct <= 75 ? 'bg-yellow-400' : 'bg-green-500';
+    const barText = noCubrioMinimo ? 'text-red-500' : pct < 50 ? 'text-red-500' : pct <= 75 ? 'text-yellow-500' : 'text-green-500';
 
     const pctEl = document.getElementById('progress-pct');
     pctEl.textContent = pct.toFixed(1) + '%';
@@ -97,8 +105,25 @@ function renderWeek(s) {
     if (isFinite(pct) && pct >= 99.95) {
         bar.classList.add('bar-complete');
         launchFireworks(5000);
+        stopRain();
+    } else if (noCubrioMinimo) {
+        stopFireworks();
+        launchRain(3500);   // llovizna breve sobre la tarjeta: contraparte de los fuegos
     } else {
         stopFireworks();
+        stopRain();
+    }
+
+    // Aviso de mínimo no cubierto, arriba a la derecha de la tarjeta.
+    const warningBadge = document.getElementById('week-warning-badge');
+    if (warningBadge) {
+        warningBadge.classList.toggle('hidden', !noCubrioMinimo);
+        if (noCubrioMinimo) {
+            // Reinicia la animación cada vez que se muestra (p.ej. al cambiar de semana).
+            warningBadge.classList.remove('badge-min-hours');
+            void warningBadge.offsetWidth;
+            warningBadge.classList.add('badge-min-hours');
+        }
     }
 
     const st   = s.stats || {};
