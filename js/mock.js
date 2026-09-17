@@ -6,7 +6,7 @@
    ========================================================= */
 import { HORAS_SEMANA_COMPLETA } from './config.js';
 
-function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabajar, dept }) {
+function buildMockSemana(pct, { numSemana, lunes, hrsVac, hrsFest, homeOffice, tieTrabajar, dept }) {
     // Porcentaje = tieTrabajado / 47.5 * 100. Para reproducir el pct pedido en
     // ?mock=, fijamos registradas = 47.5 * pct / 100.
     const porcentaje = isFinite(pct) ? pct : 85;
@@ -29,6 +29,7 @@ function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabaja
         tieTrabajar: tieTrabajar,   // horas a trabajar de la semana (informativo; la tarjeta "Diferencia" usa la base fija)
         tieTrabajado: registradas,
         hrsVac: hrsVac,
+        hrsFest: hrsFest || 0,
         numRetardos: 1,
         numSalAnt: 0,
         // Registros en el formato de fecha del servicio (DD/MM/YYYY HH:MM:SS).
@@ -50,11 +51,11 @@ function buildMockSemana(pct, { numSemana, lunes, hrsVac, homeOffice, tieTrabaja
 export function buildMockPerfiles(pct, dept) {
     return [
         buildMockSemana(pct, { numSemana: 28, lunes: new Date(2026, 6, 6),
-            hrsVac: 8, tieTrabajar: 47.5, homeOffice: ['Martes', 'Jueves'], dept }),
+            hrsVac: 8, hrsFest: 0, tieTrabajar: 47.5, homeOffice: ['Martes', 'Jueves'], dept }),
         buildMockSemana(72,  { numSemana: 27, lunes: new Date(2026, 5, 29),
-            hrsVac: 0, tieTrabajar: 47.5, homeOffice: ['Martes'], dept }),
+            hrsVac: 0, hrsFest: 0, tieTrabajar: 47.5, homeOffice: ['Martes'], dept }),
         buildMockSemana(45,  { numSemana: 26, lunes: new Date(2026, 5, 22),
-            hrsVac: 16, tieTrabajar: 31.5, homeOffice: [], dept })   // semana con feriado: esperadas < 47.5
+            hrsVac: 16, hrsFest: 9.5, tieTrabajar: 38.0, homeOffice: [], dept })   // semana con feriado: esperadas < 47.5
     ];
 }
 
@@ -66,4 +67,11 @@ export function buildMockVacaciones() {
         { dia_semana: 'Lunes',     dia: '2026-07-06', personal: 'mock', id_solicitud: 'mock1' },
         { dia_semana: 'Miércoles', dia: '2026-07-08', personal: 'mock', id_solicitud: 'mock2' }
     ];
+}
+
+/* Arreglo global de días festivos (como el que manda el servicio junto a
+   'perfil'): una fila por día, SOLO con el nombre del día de la semana (sin
+   fecha). Se aplica a la semana 26 del mock, la única con hrsFest > 0. */
+export function buildMockDiasFestivos() {
+    return [{ dia: 'Viernes' }];
 }

@@ -68,6 +68,24 @@ export function homeOfficeDias(p) {
     return set;
 }
 
+/* Normaliza el arreglo global 'diasFestivos' (llega junto a 'perfil', una fila
+   por día festivo -solo con 'dia' = nombre del día de la semana, SIN fecha ni
+   referencia a qué semana pertenece- a diferencia de 'vacaciones', que sí trae
+   fecha) a un Set con los nombres de día festivo de ESTA semana.
+   Como el servicio no manda fecha, no hay forma de ubicar estos días en una
+   semana concreta cuando la respuesta trae varias; se usa 'hrsFest' (total de
+   horas festivas que el servicio sí calcula por semana) como filtro: solo se
+   aplican los nombres de 'diasFestivos' a la(s) semana(s) con hrsFest > 0. */
+export function festivoDias(p, diasFestivosRaw) {
+    const set = new Set();
+    if (toNum(p.hrsFest) <= 0 || !Array.isArray(diasFestivosRaw)) return set;
+    for (const f of diasFestivosRaw) {
+        const k = normDia(f && f.dia);
+        if (k) set.add(k);
+    }
+    return set;
+}
+
 /* Convierte una fecha del servicio SIN hora a Date (medianoche local).
    Acepta 'DD/MM/YYYY' (checadas) y 'YYYY-MM-DD' (vacaciones). */
 function parseFechaSoloFecha(str) {

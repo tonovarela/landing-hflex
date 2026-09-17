@@ -129,21 +129,22 @@ function renderWeek(s, esActual = true) {
     const st   = s.stats || {};
     const dif  = diferenciaHoras(s.diferencia);
     const neutro = 'text-slate-800 dark:text-slate-100';
-    // Primera fila: todo lo relacionado con horas. Segunda fila: incidencias.
+    // Primera fila (sm+): las 4 horas. Segunda fila: incidencias + Diferencia.
     const cards = [
         { label: 'Horas Esperadas',     value: st.horasEsperadas,     accent: neutro, title: 'Jornada completa de la Semana Flexible (100%)' },
         { label: 'Horas Reportadas',    value: st.horasReportadas,    accent: neutro, title: 'Horas trabajadas que reporta el servicio (tieTrabajado)' },
         { label: 'Horas Vacaciones',    value: st.horasVacaciones,    accent: neutro },
+        { label: 'Horas Festivas',      value: st.horasFestivas,      accent: neutro },
+        { label: 'Faltas',              value: st.faltas,             accent: neutro },
+        { label: 'Retardos',            value: st.retardos,           accent: neutro },
+        { label: 'Salidas Anticipadas', value: st.salidasAnticipadas, accent: neutro },
         // Móvil: al final, a todo el ancho y separada por una línea (order-last evita
-        // que quede un hueco a media rejilla). sm+: última columna completa, centrada.
+        // que quede un hueco a media rejilla). sm+: última columna de la segunda fila.
         { label: dif.label,             value: dif.value,             accent: dif.accent, title: dif.title,
           cls: 'flex flex-col items-center justify-center text-center border-slate-100 dark:border-slate-700 ' +
                'order-last col-span-2 border-t pt-4 ' +
-               'sm:order-none sm:col-span-1 sm:row-span-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4',
-          valueCls: 'text-2xl sm:text-3xl' },
-        { label: 'Faltas',              value: st.faltas,             accent: neutro },
-        { label: 'Retardos',            value: st.retardos,           accent: neutro },
-        { label: 'Salidas Anticipadas', value: st.salidasAnticipadas, accent: neutro }
+               'sm:order-none sm:col-span-1 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4',
+          valueCls: 'text-2xl sm:text-3xl' }
     ];
     document.getElementById('stats-grid').innerHTML = cards.map(c => `
         <div class="${c.cls ?? ''}"${c.title ? ` title="${c.title}"` : ''}>
@@ -196,24 +197,37 @@ function vacacionIcon(activo) {
                   role="img" aria-label="Vacaciones" title="Vacaciones">🏝️</span>`;
 }
 
-/* Un día es Home Office o Vacaciones, nunca ambos; de haber los dos (dato
-   inconsistente del servicio) se prioriza Vacaciones por ser la ausencia. */
-function estadoIcon(r) {
-    return r.vacacion ? vacacionIcon(true) : homeOfficeIcon(r.homeOffice);
+/* Ícono de Día Festivo. Se muestra en los días cuyo nombre coincide con
+   'fechaFestivo' del webservice (ver festivoDias en utils.js). */
+function festivoIcon(activo) {
+    if (!activo) return '';
+    return `<span class="inline-flex items-center justify-center w-8 h-8 text-xl align-middle"
+                  role="img" aria-label="Día Festivo" title="Día Festivo">🎉</span>`;
 }
 
-// Jornada fija que se muestra como "Total" en un día de vacaciones (no viene
-// checada real: el día no se trabaja, así que no hay forma de calcularlo).
+/* Un día es Home Office, Vacaciones o Día Festivo, nunca dos a la vez; de
+   coincidir varios (dato inconsistente del servicio) se prioriza Vacaciones,
+   luego Día Festivo y por último Home Office. */
+function estadoIcon(r) {
+    if (r.vacacion) return vacacionIcon(true);
+    if (r.festivo)  return festivoIcon(true);
+    return homeOfficeIcon(r.homeOffice);
+}
+
+// Jornada fija que se muestra como "Total" en un día de vacaciones o festivo
+// (no viene checada real: el día no se trabaja, así que no hay forma de
+// calcularlo).
 const TOTAL_DIA_VACACION = '9 h 30 m';
+const TOTAL_DIA_FESTIVO  = '9 h 30 m';
 
 function renderRecords(records = []) {
     document.getElementById('records-body').innerHTML = records.map(r => `
         <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
             <td class="py-4 px-3 font-medium text-slate-700 dark:text-slate-200">${r.dia}</td>
-            <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.vacacion ? 'VACACIONES' : (r.entrada ?? '—')}</td>
-            <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.vacacion ? 'VACACIONES' : (r.salida ?? '—')}</td>
+            <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.vacacion ? 'VACACIONES' : r.festivo ? 'DÍA FESTIVO' : (r.entrada ?? '—')}</td>
+            <td class="py-4 px-3 text-center text-slate-500 dark:text-slate-400 tabular-nums">${r.vacacion ? 'VACACIONES' : r.festivo ? 'DÍA FESTIVO' : (r.salida ?? '—')}</td>
             <td class="py-4 px-3 text-right whitespace-nowrap">
-                <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums align-middle">${r.vacacion ? TOTAL_DIA_VACACION : (r.total ?? '0 h 0 m')}</span>
+                <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-md tabular-nums align-middle">${r.vacacion ? TOTAL_DIA_VACACION : r.festivo ? TOTAL_DIA_FESTIVO : (r.total ?? '0 h 0 m')}</span>
             </td>
             <td class="py-4 px-3 text-center w-12">${estadoIcon(r)}</td>
         </tr>
@@ -225,17 +239,17 @@ function renderRecords(records = []) {
                 <span class="font-semibold text-slate-800 dark:text-slate-100">${r.dia}</span>
                 <span class="flex items-center gap-1.5">
                     ${estadoIcon(r)}
-                    <span class="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.vacacion ? TOTAL_DIA_VACACION : (r.total ?? '0 h 0 m')}</span>
+                    <span class="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1 rounded-md tabular-nums">${r.vacacion ? TOTAL_DIA_VACACION : r.festivo ? TOTAL_DIA_FESTIVO : (r.total ?? '0 h 0 m')}</span>
                 </span>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div>
                     <p class="text-slate-400 dark:text-slate-500 uppercase tracking-wide">Entrada</p>
-                    <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.vacacion ? 'Vacaciones' : (r.entrada ?? '—')}</p>
+                    <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.vacacion ? 'Vacaciones' : r.festivo ? 'Día festivo' : (r.entrada ?? '—')}</p>
                 </div>
                 <div>
                     <p class="text-slate-400 dark:text-slate-500 uppercase tracking-wide">Salida</p>
-                    <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.vacacion ? 'Vacaciones' : (r.salida ?? '—')}</p>
+                    <p class="mt-0.5 text-slate-600 dark:text-slate-300 tabular-nums">${r.vacacion ? 'Vacaciones' : r.festivo ? 'Día festivo' : (r.salida ?? '—')}</p>
                 </div>
             </div>
         </div>

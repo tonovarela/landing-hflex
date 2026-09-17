@@ -4,7 +4,7 @@
    respuesta "plana" al formato que consume el renderizado.
    ========================================================= */
 import { API_CONFIG, baseUrlFoto, HORAS_SEMANA_COMPLETA } from './config.js';
-import { toNum, decimalAHoras, diffHoras, normDia, homeOfficeDias, vacacionesDias, esDepartamentoSistemas } from './utils.js';
+import { toNum, decimalAHoras, diffHoras, normDia, homeOfficeDias, vacacionesDias, festivoDias, esDepartamentoSistemas } from './utils.js';
 
 function avatarUrl(nombre) {
     return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nombre || '') +
@@ -48,7 +48,7 @@ export async function fetchData({ id, url = API_CONFIG.baseUrl } = {}) {
     if (json.error || sinPerfil) {
         const e = new Error('Colaborador no encontrado'); e.notFound = true; throw e;
     }
-    return mapApiResponse(json.perfil, id, json.vacaciones);
+    return mapApiResponse(json.perfil, id, json.vacaciones, json.diasFestivos);
 }
 
 /* Extrae el mensaje de error de una respuesta (JSON { error/mensaje } o texto plano). */
@@ -69,9 +69,9 @@ async function extraerMensajeError(res) {
    Normalizamos a un arreglo, mapeamos cada semana y las ordenamos de la más reciente a la más
    antigua (NumSemana descendente). Devolvemos los datos de la persona (iguales en
    todas las semanas) una sola vez, junto con el arreglo de semanas. */
-export function mapApiResponse(perfilRaw, id, vacacionesRaw = []) {
+export function mapApiResponse(perfilRaw, id, vacacionesRaw = [], diasFestivosRaw = []) {
     const arr = (Array.isArray(perfilRaw) ? perfilRaw : [perfilRaw]).filter(Boolean);
-    const semanas = arr.map(p => mapSemana(p, id, vacacionesRaw));
+    const semanas = arr.map(p => mapSemana(p, id, vacacionesRaw, diasFestivosRaw));
     // Más reciente primero. Si NumSemana no es numérico, preserva el orden original.
     semanas.sort((a, b) => b.numSemana - a.numSemana);
     return {
@@ -84,10 +84,11 @@ export function mapApiResponse(perfilRaw, id, vacacionesRaw = []) {
    'vacacionesRaw' es el arreglo global de días de vacaciones (mismo para todas las
    semanas del colaborador); vacacionesDias() se encarga de quedarse solo con los
    que caen dentro de esta semana. */
-function mapSemana(p, id, vacacionesRaw = []) {
+function mapSemana(p, id, vacacionesRaw = [], diasFestivosRaw = []) {
     const esperadas   = HORAS_SEMANA_COMPLETA;   // 47.5 h = 100% (base fija del porcentaje/barra)
     const registradas = toNum(p.tieTrabajado);   // horas trabajadas según el servicio (= suma de checadas)
     const vacaciones         = toNum(p.hrsVac);
+    const festivas           = toNum(p.hrsFest);
     const porcentaje         = esperadas > 0 ? (registradas / esperadas) * 100 : 0;
 
     const dias = [
@@ -107,13 +108,18 @@ function mapSemana(p, id, vacacionesRaw = []) {
     // Vacaciones: 'vacacionesRaw' llega con fecha ('YYYY-MM-DD'), no con nombre de
     // semana, así que vacacionesDias() ubica cuáles de esas fechas caen en esta semana.
     const vacDias = vacacionesDias(p, vacacionesRaw);
+    // Día Festivo: 'diasFestivosRaw' es el arreglo global de días festivos
+    // (mismo para todas las semanas, sin fecha); festivoDias() lo aplica solo a
+    // la(s) semana(s) con hrsFest > 0 (ver comentario en utils.js).
+    const festDias = festivoDias(p, diasFestivosRaw);
 
     const registros = dias.map(({ dia, suf }) => {
         const entrada = p['E-' + suf] || null;
         const salida  = p['S-' + suf] || null;
         const homeOffice = hoDias.has(normDia(dia));
         const vacacion   = vacDias.has(normDia(dia));
-        return { dia, entrada, salida, total: diffHoras(entrada, salida), homeOffice, vacacion };
+        const festivo    = festDias.has(normDia(dia));
+        return { dia, entrada, salida, total: diffHoras(entrada, salida), homeOffice, vacacion, festivo };
     });
 
     return {
@@ -138,6 +144,7 @@ function mapSemana(p, id, vacacionesRaw = []) {
                 horasEsperadas:     decimalAHoras(esperadas),      // base fija (47.5 h = 100%)
                 horasReportadas:    decimalAHoras(registradas),    // tieTrabajado: lo efectivamente trabajado
                 horasVacaciones:    decimalAHoras(vacaciones),
+                horasFestivas:      decimalAHoras(festivas),
                 faltas:             0,
                 retardos:           p.numRetardos ?? 0,
                 salidasAnticipadas: p.numSalAnt ?? 0
