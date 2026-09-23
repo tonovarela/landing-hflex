@@ -108,9 +108,8 @@ function mapSemana(p, id, vacacionesRaw = [], diasFestivosRaw = []) {
     // Vacaciones: 'vacacionesRaw' llega con fecha ('YYYY-MM-DD'), no con nombre de
     // semana, así que vacacionesDias() ubica cuáles de esas fechas caen en esta semana.
     const vacDias = vacacionesDias(p, vacacionesRaw);
-    // Día Festivo: 'diasFestivosRaw' es el arreglo global de días festivos
-    // (mismo para todas las semanas, sin fecha); festivoDias() lo aplica solo a
-    // la(s) semana(s) con hrsFest > 0 (ver comentario en utils.js).
+    // Día Festivo: 'diasFestivosRaw' es el arreglo global de días festivos, cada
+    // uno con su número de semana; festivoDias() se queda con los de esta semana.
     const festDias = festivoDias(p, diasFestivosRaw);
 
     const registros = dias.map(({ dia, suf }) => {

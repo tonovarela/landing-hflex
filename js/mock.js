@@ -70,8 +70,8 @@ export function buildMockVacaciones() {
 }
 
 /* Arreglo global de días festivos (como el que manda el servicio junto a
-   'perfil'): una fila por día, SOLO con el nombre del día de la semana (sin
-   fecha). Se aplica a la semana 26 del mock, la única con hrsFest > 0. */
+   'perfil'): una fila por día, con el nombre del día de la semana y el número
+   de semana al que pertenece. */
 export function buildMockDiasFestivos() {
-    return [{ dia: 'Viernes' }];
+    return [{ NumSemana: 26, dia: 'Viernes' }];
 }

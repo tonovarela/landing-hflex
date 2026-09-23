@@ -69,18 +69,22 @@ export function homeOfficeDias(p) {
 }
 
 /* Normaliza el arreglo global 'diasFestivos' (llega junto a 'perfil', una fila
-   por día festivo -solo con 'dia' = nombre del día de la semana, SIN fecha ni
-   referencia a qué semana pertenece- a diferencia de 'vacaciones', que sí trae
-   fecha) a un Set con los nombres de día festivo de ESTA semana.
-   Como el servicio no manda fecha, no hay forma de ubicar estos días en una
-   semana concreta cuando la respuesta trae varias; se usa 'hrsFest' (total de
-   horas festivas que el servicio sí calcula por semana) como filtro: solo se
-   aplican los nombres de 'diasFestivos' a la(s) semana(s) con hrsFest > 0. */
+   por día festivo con 'dia' = nombre del día de la semana y el número de semana
+   al que pertenece) a un Set con los nombres de día festivo de ESTA semana.
+   Se comparan el número de semana del festivo contra 'NumSemana' de la semana.
+   El nombre exacto del campo de semana se tolera en sus variantes habituales
+   (NumSemana / numSemana / num_semana / semana). */
+function festivoNumSemana(f) {
+    return f.NumSemana ?? f.numSemana ?? f.num_semana ?? f.semana;
+}
+
 export function festivoDias(p, diasFestivosRaw) {
     const set = new Set();
-    if (toNum(p.hrsFest) <= 0 || !Array.isArray(diasFestivosRaw)) return set;
+    if (!Array.isArray(diasFestivosRaw)) return set;
+    const semana = toNum(p.NumSemana);
     for (const f of diasFestivosRaw) {
-        const k = normDia(f && f.dia);
+        if (!f || festivoNumSemana(f) == null || toNum(festivoNumSemana(f)) !== semana) continue;
+        const k = normDia(f.dia ?? f.dia_semana);
         if (k) set.add(k);
     }
     return set;
