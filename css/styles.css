@@ -48,6 +48,26 @@
     }
 }
 
+/* Barra lateral del Salón de la Fama: entra deslizándose desde la derecha
+   mientras el fondo aparece. Al cerrar, JS agrega .salon-closing para
+   reproducir el movimiento inverso antes de ocultar la capa. */
+@keyframes salon-drawer-in  { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes salon-drawer-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes salon-fade-in    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes salon-fade-out   { from { opacity: 1; } to { opacity: 0; } }
+
+#salon-modal .salon-drawer   { animation: salon-drawer-in 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+#salon-modal .salon-backdrop { animation: salon-fade-in 240ms ease-out; }
+#salon-modal.salon-closing .salon-drawer   { animation: salon-drawer-out 220ms ease-in forwards; }
+#salon-modal.salon-closing .salon-backdrop { animation: salon-fade-out 220ms ease-in forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+    #salon-modal .salon-drawer,
+    #salon-modal .salon-backdrop {
+        animation: none !important;
+    }
+}
+
 /* Barras del ranking del Salón de la Fama: se pintan en 0% y JS les asigna su
    ancho real ya insertadas, así la transición las hace crecer (cada fila con su
    propio transition-delay para que avancen en cascada). */

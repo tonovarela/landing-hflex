@@ -22,6 +22,24 @@
             <img src="https://servicios.litoprocess.com/static/assets/img/lito-dark.png"
                  alt="Litoprocess" class="max-h-9 w-auto object-contain hidden dark:block">
 
+            <!-- items-stretch: el acceso al Salón toma el mismo alto que el selector de tema -->
+            <div class="flex items-stretch gap-2">
+            <!-- Acceso al Salón de la Fama: JS lo muestra solo para los números de
+                 empleado autorizados (SALON_FAMA_EMPLEADOS en js/config.js).
+                 Compacto: en móvil solo el trofeo, desde sm también el texto. -->
+            <button id="salon-access" type="button" aria-label="Salón de la Fama" title="Salón de la Fama"
+                    class="hidden inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl
+                           bg-gradient-to-r from-amber-400 to-amber-500 text-white text-xs font-semibold
+                           shadow-sm hover:from-amber-500 hover:to-amber-600 focus:outline-none
+                           focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-colors">
+                <!-- Trofeo -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                          d="M8 4h8v5a4 4 0 01-8 0V4zM8 6H5v1a3 3 0 003 3M16 6h3v1a3 3 0 01-3 3M12 13v4m-3 3h6"/>
+                </svg>
+                
+            </button>
+
             <!-- Selector de tema (dropdown). Las opciones las genera JS según el
                  departamento: los temas exclusivos (matrix, synthwave, galaxy,
                  blueprint, pandora) solo para Sistemas (ver renderThemeMenu). -->
@@ -76,6 +94,7 @@
                 <div id="theme-dropdown" role="menu" aria-labelledby="theme-toggle"
                      class="hidden absolute right-0 mt-2 w-44 origin-top-right rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800 py-1 z-40"></div>
             </div>
+            </div>
         </div>
     </header>
 
@@ -105,20 +124,6 @@
                         <span class="skeleton inline-block h-3 w-32 rounded"></span>
                     </p>
 
-                    <!-- Acceso al Salón de la Fama: JS lo muestra solo para los números de
-                         empleado autorizados (SALON_FAMA_EMPLEADOS en js/config.js). -->
-                    <button id="salon-access" type="button"
-                            class="hidden mt-5 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                                   bg-gradient-to-r from-amber-400 to-amber-500 text-white text-sm font-semibold
-                                   shadow-sm hover:from-amber-500 hover:to-amber-600 focus:outline-none
-                                   focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition-colors">
-                        <!-- Trofeo -->
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                  d="M8 4h8v5a4 4 0 01-8 0V4zM8 6H5v1a3 3 0 003 3M16 6h3v1a3 3 0 01-3 3M12 13v4m-3 3h6"/>
-                        </svg>
-                        Salón de la Fama
-                    </button>
                 </section>
 
                 <!-- Tarjeta de resumen semanal -->
@@ -140,7 +145,8 @@
                     <div class="flex items-end justify-between gap-3 mb-4">
                         <!-- min-w-0: deja que el título/selector se encojan antes de empujar al porcentaje -->
                         <div class="min-w-0">
-                            <div class="flex items-center gap-2">
+                            <!-- items-stretch: el acceso al Salón toma el mismo alto que el selector de tema -->
+            <div class="flex items-stretch gap-2">
                                 <h2 id="week-title" class="text-sm sm:text-base font-medium text-slate-700 dark:text-slate-200 truncate">Semana Flexible</h2>
                                 <!-- Selector de semana: visible solo cuando el servicio devuelve más de una semana -->
                                 <select id="week-selector"
@@ -225,81 +231,81 @@
     <!-- ===== Salón de la Fama: listado global de horas trabajadas por semana =====
          Hijo directo de <body> para que la capa cubra también el encabezado.
          Todo su contenido lo genera js/salon.js. -->
-    <div id="salon-modal" class="hidden fixed inset-0 z-[70] overflow-y-auto">
-        <div id="salon-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+    <div id="salon-modal" class="hidden fixed inset-0 z-[70]">
+        <div id="salon-backdrop" class="salon-backdrop fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
 
-        <div class="relative min-h-full flex items-start sm:items-center justify-center p-3 sm:p-6">
-            <!-- <section> a propósito: hereda el estilo de tarjeta de los temas matrix/synthwave/galaxy -->
-            <section class="w-full max-w-4xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700">
+        <!-- Barra lateral anclada a la derecha, a todo lo alto de la ventana.
+             <section> a propósito: hereda el estilo de tarjeta de los temas matrix/synthwave/galaxy -->
+        <section role="dialog" aria-modal="true" aria-label="Salón de la Fama"
+                 class="salon-drawer absolute inset-y-0 right-0 w-full sm:w-[min(42rem,92vw)] flex flex-col bg-white dark:bg-slate-800 shadow-2xl border-l border-slate-100 dark:border-slate-700">
 
-                <!-- Encabezado (compacto: deja el máximo de alto al ranking) -->
-                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 border-b border-slate-100 dark:border-slate-700">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-amber-300 to-amber-500 text-white flex items-center justify-center shadow-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                      d="M8 4h8v5a4 4 0 01-8 0V4zM8 6H5v1a3 3 0 003 3M16 6h3v1a3 3 0 01-3 3M12 13v4m-3 3h6"/>
-                            </svg>
-                        </span>
-                        <div class="min-w-0">
-                            <h2 class="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">Salón de la Fama</h2>
-                            <p class="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">Horas trabajadas por semana</p>
-                        </div>
-                    </div>
-                    <button id="salon-close" type="button" aria-label="Cerrar"
-                            class="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-700 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18"/>
+            <!-- Encabezado (compacto: deja el máximo de alto al ranking) -->
+            <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 border-b border-slate-100 dark:border-slate-700">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-amber-300 to-amber-500 text-white flex items-center justify-center shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                  d="M8 4h8v5a4 4 0 01-8 0V4zM8 6H5v1a3 3 0 003 3M16 6h3v1a3 3 0 01-3 3M12 13v4m-3 3h6"/>
                         </svg>
-                    </button>
-                </div>
-
-                <!-- Barra de herramientas: pestañas de semana + buscador -->
-                <div id="salon-toolbar" class="hidden px-4 sm:px-5 pt-3 space-y-2.5">
-                    <div id="salon-weeks" class="flex gap-2 overflow-x-auto pb-1"></div>
-                    <label class="relative block">
-                        <span class="sr-only">Buscar colaborador o departamento</span>
-                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <circle cx="11" cy="11" r="7" stroke-width="1.8"/>
-                            <path stroke-linecap="round" stroke-width="1.8" d="M20 20l-3.5-3.5"/>
-                        </svg>
-                        <input id="salon-search" type="search" autocomplete="off" placeholder="Buscar por nombre o departamento"
-                               class="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700/40 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-green">
-                    </label>
-                </div>
-
-                <!-- Cuerpo desplazable -->
-                <div class="flex-1 overflow-y-auto px-5 sm:px-6 py-4">
-
-                    <!-- Cargando -->
-                    <div id="salon-loading" class="hidden py-16 flex flex-col items-center gap-3 text-sm text-slate-400 dark:text-slate-500">
-                        <span class="w-8 h-8 rounded-full border-2 border-slate-200 dark:border-slate-600 border-t-brand-green animate-spin"></span>
-                        Cargando el ranking…
-                    </div>
-
-                    <!-- Error -->
-                    <div id="salon-error" class="hidden py-16 text-center text-sm text-slate-500 dark:text-slate-400">
-                        No se pudo cargar el listado de horas trabajadas.
-                        <button id="salon-retry" type="button" class="underline font-semibold">Reintentar</button>
-                    </div>
-
-                    <!-- Sin datos -->
-                    <div id="salon-empty" class="hidden py-16 text-center text-sm text-slate-400 dark:text-slate-500">
-                        El servicio no devolvió horas trabajadas.
-                    </div>
-
-                    <!-- Contenido -->
-                    <div id="salon-content" class="hidden space-y-5">
-                        <div id="salon-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
-                        <div id="salon-podium" class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:items-end"></div>
-                        <div>
-                            <h3 id="salon-list-title" class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Ranking completo</h3>
-                            <ul id="salon-list" class="divide-y divide-slate-50 dark:divide-slate-700/60"></ul>
-                        </div>
+                    </span>
+                    <div class="min-w-0">
+                        <h2 class="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">Salón de la Fama</h2>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">Horas trabajadas por semana</p>
                     </div>
                 </div>
-            </section>
-        </div>
+                <button id="salon-close" type="button" aria-label="Cerrar"
+                        class="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Barra de herramientas: pestañas de semana + buscador -->
+            <div id="salon-toolbar" class="hidden px-4 sm:px-5 pt-3 space-y-2.5">
+                <div id="salon-weeks" class="flex gap-2 overflow-x-auto pb-1"></div>
+                <label class="relative block">
+                    <span class="sr-only">Buscar colaborador o departamento</span>
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="7" stroke-width="1.8"/>
+                        <path stroke-linecap="round" stroke-width="1.8" d="M20 20l-3.5-3.5"/>
+                    </svg>
+                    <input id="salon-search" type="search" autocomplete="off" placeholder="Buscar por nombre o departamento"
+                           class="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700/40 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-green">
+                </label>
+            </div>
+
+            <!-- Cuerpo desplazable -->
+            <div class="flex-1 overflow-y-auto px-5 sm:px-6 py-4">
+
+                <!-- Cargando -->
+                <div id="salon-loading" class="hidden py-16 flex flex-col items-center gap-3 text-sm text-slate-400 dark:text-slate-500">
+                    <span class="w-8 h-8 rounded-full border-2 border-slate-200 dark:border-slate-600 border-t-brand-green animate-spin"></span>
+                    Cargando el ranking…
+                </div>
+
+                <!-- Error -->
+                <div id="salon-error" class="hidden py-16 text-center text-sm text-slate-500 dark:text-slate-400">
+                    No se pudo cargar el listado de horas trabajadas.
+                    <button id="salon-retry" type="button" class="underline font-semibold">Reintentar</button>
+                </div>
+
+                <!-- Sin datos -->
+                <div id="salon-empty" class="hidden py-16 text-center text-sm text-slate-400 dark:text-slate-500">
+                    El servicio no devolvió horas trabajadas.
+                </div>
+
+                <!-- Contenido -->
+                <div id="salon-content" class="hidden space-y-5">
+                    <div id="salon-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+                    <div id="salon-podium" class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:items-end"></div>
+                    <div>
+                        <h3 id="salon-list-title" class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Ranking completo</h3>
+                        <ul id="salon-list" class="divide-y divide-slate-50 dark:divide-slate-700/60"></ul>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <!-- Módulos ES: solo se carga el punto de entrada; el resto se resuelve por

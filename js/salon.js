@@ -18,7 +18,8 @@ const estado = {
     filtro: '',         // texto del buscador
     numEmpleado: '',    // colaborador actual (se resalta en el ranking)
     cargando: false,
-    iniciado: false     // los listeners se conectan una sola vez
+    iniciado: false,    // los listeners se conectan una sola vez
+    timerCierre: null   // ocultar la capa al terminar la animación de salida
 };
 
 const el = (id) => document.getElementById(id);
@@ -64,21 +65,34 @@ function conectarEventos() {
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !el('salon-modal').classList.contains('hidden')) cerrar();
+        if (e.key === 'Escape') cerrar();
     });
 }
 
 function abrir() {
-    el('salon-modal').classList.remove('hidden');
+    clearTimeout(estado.timerCierre);
+    el('salon-modal').classList.remove('hidden', 'salon-closing');
     document.body.classList.add('overflow-hidden');   // evita el scroll del fondo
     if (estado.semanas === null) cargar();
 }
 
+/* Cierra la barra lateral: primero la desliza fuera (ver .salon-closing en
+   styles.css) y al terminar oculta la capa. Sin animación (reduce-motion o
+   ya oculta) se oculta de inmediato. */
 function cerrar() {
     const modal = el('salon-modal');
-    if (!modal) return;
-    modal.classList.add('hidden');
+    if (!modal || modal.classList.contains('hidden')) return;
     document.body.classList.remove('overflow-hidden');
+
+    const sinMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (sinMovimiento) { modal.classList.add('hidden'); return; }
+
+    modal.classList.add('salon-closing');
+    clearTimeout(estado.timerCierre);
+    estado.timerCierre = setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('salon-closing');
+    }, 220);
 }
 
 /* Descarga el listado (una vez) y pinta la semana más reciente. */
