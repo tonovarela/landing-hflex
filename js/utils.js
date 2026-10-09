@@ -105,15 +105,27 @@ function parseFechaSoloFecha(str) {
 const SUF_ORDEN = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'];   // 0 = lunes
 
 /* Lunes de la semana de 'p', deducido de la primera checada con fecha que
-   encuentre (retrocediendo su día de la semana). Null si la semana no tiene
-   ninguna checada (no hay forma de ubicarla en el calendario). */
+   encuentre (retrocediendo su día de la semana). Si la semana no tiene
+   ninguna checada (p.ej. toda la semana de vacaciones), se calcula con su
+   'Año' y 'NumSemana'. Null si tampoco vienen esos datos. */
 function lunesDeSemana(p) {
     for (let i = 0; i < SUF_ORDEN.length; i++) {
         const raw = p['E-' + SUF_ORDEN[i]] || p['S-' + SUF_ORDEN[i]];
         const d = parseFechaSoloFecha(raw);
         if (d) { d.setDate(d.getDate() - i); return d; }
     }
-    return null;
+    return lunesSemanaIso(toNum(p['Año']), toNum(p.NumSemana));
+}
+
+/* Lunes (medianoche local) de la semana ISO 8601 'semana' del año 'anio': la
+   semana 1 es la que contiene el 4 de enero. Coincide con la numeración del
+   servicio (semana 40 de 2026 = lunes 28/09/2026). Null si faltan datos. */
+function lunesSemanaIso(anio, semana) {
+    if (!anio || !semana) return null;
+    const cuatroEne = new Date(anio, 0, 4);
+    const lunes = new Date(anio, 0, 4 - ((cuatroEne.getDay() + 6) % 7));   // lunes de la semana 1
+    lunes.setDate(lunes.getDate() + (semana - 1) * 7);
+    return lunes;
 }
 
 /* Normaliza el arreglo global 'vacaciones' (llega junto a 'perfil', una fila por

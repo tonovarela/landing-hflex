@@ -5,6 +5,7 @@
 const baseUrl = "https://servicios.litoprocess.com/perfil/api/perfil.php";
 const baseUrlPersonal = "https://servicios.litoprocess.com/perfil/api/personal.php";
 const baseUrlHoras = "https://servicios.litoprocess.com/perfil/api/horas-trabajadas.php";
+const baseUrlChecadas = "https://servicios.litoprocess.com/perfil/api/checadas.php";
 export const baseUrlFoto = "https://servicios.litoprocess.com/colaboradores/api/foto/";
 
 /* Jornada completa de la Semana Flexible: 47.5 horas equivalen al 100%.
@@ -25,6 +26,7 @@ export const API_CONFIG = {
     queryParam: 'id',                 // parámetro por defecto en la URL de esta página
     queryParamPersonal: 'personal',   // parámetro opcional: número de empleado directo
     baseUrlHoras: baseUrlHoras,       // horas-trabajadas.php -> listado global por semana
+    baseUrlChecadas: baseUrlChecadas, // checadas.php -> checadas de todos por semana (checadas.html)
     // Sin cabeceras personalizadas: un GET con 'Content-Type' dispara un preflight
     // OPTIONS que la API responde con 400 y el navegador aborta la petición.
     headers: {}

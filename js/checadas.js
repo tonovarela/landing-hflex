@@ -3,17 +3,13 @@
    Tablero con la entrada y salida de TODOS los colaboradores, en tarjetas
    pequeñas, por semana y por día.
 
-   No hay un servicio que entregue las checadas de todos a la vez:
-     1. horas-trabajadas.php da la lista de colaboradores y semanas.
-     2. personal.php (?id=<numEmpleado>) da las checadas de cada uno; se
-        piden en paralelo con un límite de concurrencia y las tarjetas se
-        van completando conforme llegan.
+   Todo sale de una sola llamada a checadas.php: las checadas de todos los
+   colaboradores por semana, más las vacaciones y los días festivos.
    ========================================================= */
 import { API_CONFIG, baseUrlFoto, HORAS_SEMANA_COMPLETA, leerPaseChecadas } from './config.js';
-import { fetchData } from './api.js';
+import { mapApiResponse } from './api.js';
 import { escapeHtml, normDia } from './utils.js';
 
-const CONCURRENCIA = 8;   // peticiones simultáneas a personal.php
 const JORNADA_DIARIA_MIN = 9 * 60 + 30;   // 9 h 30 m: a partir de aquí el total va en verde
 
 const DIAS = [
@@ -38,15 +34,14 @@ const ESTADOS = {
 const estado = {
     colaboradores: [],      // [{ numEmpleado, nombre, departamento, foto, avatarFallback }]
     semanas: [],            // números de semana, la más reciente primero
-    checadas: new Map(),
-    horasSemana: new Map(), // numEmpleado -> Map(numSemana -> horas trabajadas según el servicio)    // numEmpleado -> Map(numSemana -> registros[]) | 'error'
+    checadas: new Map(),    // numEmpleado -> Map(numSemana -> registros[])
+    horasSemana: new Map(), // numEmpleado -> Map(numSemana -> horas trabajadas según el servicio)
     semana: null,
     dia: 0,                 // índice en DIAS
     diaElegido: false,      // el usuario ya eligió día: no se recalcula solo
     filtro: '',
     depto: '',
     filtroEstado: '',       // clave de ESTADOS o '' para todos
-    cargados: 0,
     fotosListas: new Set()  // numEmpleado cuya foto ya terminó de cargar (no repetir el loading al re-renderizar)
 };
 
@@ -56,82 +51,76 @@ const el = (id) => document.getElementById(id);
 
 async function cargar() {
     el('chk-error').classList.add('hidden');
-    el('chk-progress').textContent = 'Cargando colaboradores…';
+    el('chk-progress').textContent = 'Cargando checadas…';
     try {
-        const res = await fetch(API_CONFIG.baseUrlHoras, { headers: API_CONFIG.headers });
+        const res = await fetch(API_CONFIG.baseUrlChecadas, { headers: API_CONFIG.headers });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         if (json.error) throw new Error(String(json.error));
-        prepararListado(Array.isArray(json.horas) ? json.horas : []);
+        prepararDatos(json);
     } catch (err) {
-        console.error('Error al cargar el listado:', err);
+        console.error('Error al cargar las checadas:', err);
         el('chk-progress').textContent = '';
         el('chk-error').classList.remove('hidden');
         return;
     }
 
+    actualizarProgreso();
+    if (!estado.diaElegido) elegirDiaPorDefecto();
     renderFiltrosFijos();
     programarRender();
-    await descargarChecadas();
 }
 
-/* Lista única de colaboradores y semanas a partir de horas-trabajadas.php. */
-function prepararListado(horas) {
+/* Número de empleado sin ceros a la izquierda: vacaciones lo manda como '0279'. */
+const claveEmpleado = (num) => String(num ?? '').trim().replace(/^0+(?=.)/, '');
+
+/* checadas.php trae un renglón por colaborador y semana (mismo formato que
+   personal.php) más los arreglos globales de vacaciones y días festivos.
+   Se agrupa por colaborador y cada grupo pasa por el mismo adaptador que
+   index.html (mapApiResponse). */
+function prepararDatos(json) {
+    const filas      = Array.isArray(json.checadas) ? json.checadas : [];
+    const vacaciones = Array.isArray(json.vacaciones) ? json.vacaciones : [];
+    const festivos   = Array.isArray(json.diasFestivos) ? json.diasFestivos : [];
+
     const porNum = new Map();
-    const semanas = new Set();
-    for (const h of horas) {
-        const num = String(h.NumEmpleado ?? '').trim();
+    for (const f of filas) {
+        const num = String(f.NumEmpleado ?? '').trim();
         if (!num) continue;
-        semanas.add(Number(h.NumSemana));
-        if (!porNum.has(num)) {
-            porNum.set(num, {
-                numEmpleado: num,
-                nombre: h.NombreEmpleado ?? '—',
-                departamento: h.Departamento ?? '—',
-                foto: baseUrlFoto + encodeURIComponent(num),
-                avatarFallback: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(h.NombreEmpleado || '') +
-                                '&background=1e293b&color=fff&size=96'
-            });
-        }
+        if (!porNum.has(num)) porNum.set(num, []);
+        porNum.get(num).push(f);
     }
-    estado.colaboradores = [...porNum.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+    const semanas = new Set();
+    estado.colaboradores = [];
+    estado.checadas.clear();
+    estado.horasSemana.clear();
+    for (const [num, filasEmp] of porNum) {
+        const clave = claveEmpleado(num);
+        const vacEmp = vacaciones.filter(v => claveEmpleado(v && v.personal) === clave);
+        const datos = mapApiResponse(filasEmp, num, vacEmp, festivos);
+
+        estado.colaboradores.push({
+            numEmpleado: num,
+            nombre: datos.perfil?.nombre ?? '—',
+            departamento: datos.perfil?.puesto ?? '—',
+            foto: baseUrlFoto + encodeURIComponent(num),
+            avatarFallback: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(datos.perfil?.nombre || '') +
+                            '&background=1e293b&color=fff&size=96'
+        });
+        estado.checadas.set(num, new Map(datos.semanas.map(s => [s.numSemana, s.registros])));
+        estado.horasSemana.set(num, new Map(datos.semanas.map(s => [s.numSemana, s.semana.diferencia.registradas])));
+        datos.semanas.forEach(s => semanas.add(s.numSemana));
+    }
+
+    estado.colaboradores.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     estado.semanas = [...semanas].filter(Number.isFinite).sort((a, b) => b - a);
-    estado.semana = estado.semanas[0] ?? null;
+    if (!estado.semanas.includes(estado.semana)) estado.semana = estado.semanas[0] ?? null;
 }
 
-/* Descarga personal.php de cada colaborador con un pool de CONCURRENCIA workers. */
-async function descargarChecadas() {
-    const cola = [...estado.colaboradores];
-    const total = cola.length;
-    estado.cargados = 0;
-    actualizarProgreso(total);
-
-    const worker = async () => {
-        while (cola.length) {
-            const c = cola.shift();
-            try {
-                const datos = await fetchData({ id: c.numEmpleado, url: API_CONFIG.baseUrlPersonal });
-                const porSemana = new Map(datos.semanas.map(s => [s.numSemana, s.registros]));
-                estado.checadas.set(c.numEmpleado, porSemana);
-                estado.horasSemana.set(c.numEmpleado,
-                    new Map(datos.semanas.map(s => [s.numSemana, s.semana.diferencia.registradas])));
-            } catch (err) {
-                console.warn(`Sin checadas para ${c.numEmpleado}:`, err.message);
-                estado.checadas.set(c.numEmpleado, 'error');
-            }
-            estado.cargados++;
-            actualizarProgreso(total);
-            if (!estado.diaElegido) elegirDiaPorDefecto();
-            programarRender();
-        }
-    };
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCIA, total) }, worker));
-}
-
-function actualizarProgreso(total) {
-    el('chk-progress').textContent = estado.cargados < total
-        ? `Cargando checadas ${estado.cargados}/${total}…`
-        : `${total} colaboradores · actualizado ${new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`;
+function actualizarProgreso() {
+    el('chk-progress').textContent =
+        `${estado.colaboradores.length} colaboradores · actualizado ${new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 /* ---------- Helpers de fecha/hora ---------- */
