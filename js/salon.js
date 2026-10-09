@@ -76,7 +76,7 @@ function abrir() {
     if (estado.semanas === null) cargar();
 }
 
-/* Cierra la barra lateral: primero la desliza fuera (ver .salon-closing en
+/* Cierra el modal: primero reproduce la animación de salida (ver .salon-closing en
    styles.css) y al terminar oculta la capa. Sin animación (reduce-motion o
    ya oculta) se oculta de inmediato. */
 function cerrar() {

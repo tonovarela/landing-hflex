@@ -48,21 +48,21 @@
     }
 }
 
-/* Barra lateral del Salón de la Fama: entra deslizándose desde la derecha
-   mientras el fondo aparece. Al cerrar, JS agrega .salon-closing para
-   reproducir el movimiento inverso antes de ocultar la capa. */
-@keyframes salon-drawer-in  { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes salon-drawer-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+/* Modal del Salón de la Fama: aparece con un leve zoom mientras el fondo se
+   oscurece. Al cerrar, JS agrega .salon-closing para reproducir el movimiento
+   inverso antes de ocultar la capa. */
+@keyframes salon-dialog-in  { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes salon-dialog-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(12px) scale(0.97); } }
 @keyframes salon-fade-in    { from { opacity: 0; } to { opacity: 1; } }
 @keyframes salon-fade-out   { from { opacity: 1; } to { opacity: 0; } }
 
-#salon-modal .salon-drawer   { animation: salon-drawer-in 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+#salon-modal .salon-dialog   { animation: salon-dialog-in 260ms cubic-bezier(0.22, 1, 0.36, 1); }
 #salon-modal .salon-backdrop { animation: salon-fade-in 240ms ease-out; }
-#salon-modal.salon-closing .salon-drawer   { animation: salon-drawer-out 220ms ease-in forwards; }
+#salon-modal.salon-closing .salon-dialog   { animation: salon-dialog-out 220ms ease-in forwards; }
 #salon-modal.salon-closing .salon-backdrop { animation: salon-fade-out 220ms ease-in forwards; }
 
 @media (prefers-reduced-motion: reduce) {
-    #salon-modal .salon-drawer,
+    #salon-modal .salon-dialog,
     #salon-modal .salon-backdrop {
         animation: none !important;
     }

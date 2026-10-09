@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entradas y Salidas | Semana Flexible</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/tailwind.config.js"></script>
+    <!-- Anti-parpadeo: aplica el tema guardado ANTES de pintar (mismo que index.html) -->
+    <script src="js/theme-init.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 min-h-screen text-slate-700 dark:text-slate-300 antialiased transition-colors">
+
+    <!-- ===== Encabezado: logo + título + cambio de tema claro/oscuro ===== -->
+    <header class="relative z-50 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm shadow-md">
+        <div class="w-full px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+                <!-- Regresar a index.html (JS pone el href y lo muestra si hay un pase válido) -->
+                <a id="chk-regresar" href="index.html" aria-label="Regresar a mi registro" title="Regresar a mi registro"
+                   class="hidden shrink-0 inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-slate-300 bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 shadow-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6"/>
+                    </svg>
+                    <span class="hidden sm:inline">Regresar</span>
+                </a>
+                <img src="https://servicios.litoprocess.com/static/assets/img/lito-light.png"
+                     alt="Litoprocess" class="max-h-9 w-auto object-contain block dark:hidden">
+                <img src="https://servicios.litoprocess.com/static/assets/img/lito-dark.png"
+                     alt="Litoprocess" class="max-h-9 w-auto object-contain hidden dark:block">
+                <span class="hidden sm:block h-6 w-px bg-slate-200 dark:bg-slate-700"></span>
+                <h1 class="hidden sm:block text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">Entradas y salidas</h1>
+            </div>
+
+            <button id="theme-switch" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Tema claro / oscuro"
+                    class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 shadow-sm transition-colors">
+                <!-- Sol: visible en oscuro (pasa a claro) -->
+                <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4" stroke-width="1.8"/>
+                    <path stroke-linecap="round" stroke-width="1.8" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/>
+                </svg>
+                <!-- Luna: visible en claro (pasa a oscuro) -->
+                <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- ===== Acceso restringido: se muestra si no hay un pase válido en localStorage ===== -->
+    <section id="chk-denegado" class="hidden max-w-md mx-auto mt-16 px-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 text-center">
+            <span class="mx-auto w-12 h-12 rounded-full bg-red-50 dark:bg-red-500/10 text-red-500 flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="5" y="11" width="14" height="9" rx="2" stroke-width="1.8"/>
+                    <path stroke-linecap="round" stroke-width="1.8" d="M8 11V8a4 4 0 018 0v3"/>
+                </svg>
+            </span>
+            <h2 class="mt-4 text-base font-bold text-slate-800 dark:text-slate-100">Acceso restringido</h2>
+            <p class="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+                Esta página solo se abre desde el botón de acceso en tu registro de asistencia.
+                Si ya lo usaste, tu acceso pudo haber caducado: vuelve a entrar desde ahí.
+            </p>
+        </div>
+    </section>
+
+    <main id="chk-main" class="hidden w-full px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+
+        <!-- ===== Filtros: semana, día, búsqueda, departamento y estado ===== -->
+        <section class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 sm:p-5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div id="chk-weeks" class="flex gap-2 overflow-x-auto"></div>
+                <p id="chk-progress" class="text-xs text-slate-400 dark:text-slate-500 tabular-nums"></p>
+            </div>
+
+            <div id="chk-days" class="grid grid-cols-7 gap-1.5"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                <label class="relative block">
+                    <span class="sr-only">Buscar colaborador</span>
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7" stroke-width="1.8"/>
+                        <path stroke-linecap="round" stroke-width="1.8" d="M20 20l-3.5-3.5"/>
+                    </svg>
+                    <input id="chk-search" type="search" autocomplete="off" placeholder="Buscar por nombre o número de empleado"
+                           class="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700/40 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-green">
+                </label>
+                <label class="block">
+                    <span class="sr-only">Departamento</span>
+                    <select id="chk-dept"
+                            class="w-full sm:w-56 px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700/40 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-green">
+                        <option value="">Todos los departamentos</option>
+                    </select>
+                </label>
+            </div>
+
+            <!-- Resumen del día; cada tarjeta también filtra por su estado -->
+            <div id="chk-summary" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2"></div>
+        </section>
+
+        <!-- ===== Estados ===== -->
+        <div id="chk-error" class="hidden rounded-2xl border border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10 px-4 py-6 text-center text-sm text-red-700 dark:text-red-300">
+            No se pudo cargar el listado de colaboradores.
+            <button id="chk-retry" type="button" class="underline font-semibold">Reintentar</button>
+        </div>
+
+        <!-- ===== Tarjetas de colaboradores ===== -->
+        <ul id="chk-grid" class="grid grid-cols-1 min-[440px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 min-[1920px]:grid-cols-8 gap-3"></ul>
+        <p id="chk-empty" class="hidden py-12 text-center text-sm text-slate-400 dark:text-slate-500"></p>
+    </main>
+
+    <!-- Módulo ES: requiere servirse por HTTP (no funciona con file://). -->
+    <script type="module" src="js/checadas.js"></script>
+</body>
+</html>

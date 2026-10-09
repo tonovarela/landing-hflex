@@ -6,6 +6,7 @@
 import { toNum, decimalAHoras } from './utils.js';
 import { applyDepartmentTheme, launchFireworks, stopFireworks, launchRain, stopRain } from './theme.js';
 import { setupSalonFama } from './salon.js';
+import { tieneChecadas, guardarPaseChecadas } from './config.js';
 
 /* Pinta todo el tablero a partir del resultado de mapApiResponse:
    perfil (fijo) + selector de semanas + la semana más reciente ya seleccionada. */
@@ -13,8 +14,27 @@ export function renderDashboard(data) {
     applyDepartmentTheme(data.perfil);
     renderProfile(data.perfil);
     setupSalonFama(data.perfil);   // acceso extra: solo para los empleados autorizados
+    setupChecadas(data.perfil);    // idem: tablero de entradas y salidas
     setupWeekSelector(data.semanas);
     renderSemana(data.semanas[0]);
+}
+
+/* Muestra el acceso a checadas.html solo para los empleados autorizados. */
+function setupChecadas(perfil) {
+    const acceso = document.getElementById('checadas-access');
+    if (!acceso) return;
+    const num = perfil && perfil.numEmpleado;
+    const autorizado = tieneChecadas(num);
+    acceso.classList.toggle('hidden', !autorizado);
+    acceso.dataset.num = autorizado ? String(num) : '';
+
+    // El pase se guarda justo al pulsar el botón (clic normal, Ctrl/Cmd+clic o
+    // clic central), antes de que se abra checadas.html. Se conecta una sola vez.
+    if (acceso.dataset.listo) return;
+    acceso.dataset.listo = '1';
+    const guardar = () => { if (acceso.dataset.num) guardarPaseChecadas(acceso.dataset.num, location.href); };
+    acceso.addEventListener('click', guardar);
+    acceso.addEventListener('auxclick', guardar);
 }
 
 /* Configura el selector de semanas. Solo se muestra cuando hay más de una semana;
