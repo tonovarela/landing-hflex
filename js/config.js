@@ -33,30 +33,48 @@ export const API_CONFIG = {
 };
 
 /* =========================================================
+   RESTRICCIÓN POR SISTEMA OPERATIVO
+   El Salón de la Fama y el acceso a checadas.html solo se muestran en
+   equipos con macOS. iPadOS se reporta como "MacIntel", así que se descarta
+   por tener pantalla táctil. Como el pase de checadas, es un control solo
+   del navegador (el user agent se puede falsificar).
+   ========================================================= */
+export function esMacOS() {
+    try {
+        const uaData = navigator.userAgentData;
+        if (uaData && uaData.platform) return uaData.platform === 'macOS';
+        const esMac = /Mac/i.test(navigator.platform || navigator.userAgent || '');
+        return esMac && !(navigator.maxTouchPoints > 1);
+    } catch {
+        return false;
+    }
+}
+
+/* =========================================================
    SALÓN DE LA FAMA
    Números de empleado autorizados a ver el listado global de horas
    trabajadas (ranking por semana). Es un acceso extra que solo aparece
-   en la tarjeta de perfil de estos colaboradores.
+   en la tarjeta de perfil de estos colaboradores, y solo en macOS.
    ========================================================= */
 export const SALON_FAMA_EMPLEADOS = ['2801'];
 
-/* ¿Este número de empleado tiene acceso al Salón de la Fama? */
+/* ¿Este número de empleado tiene acceso al Salón de la Fama (y es macOS)? */
 export function tieneSalonFama(numEmpleado) {
     if (numEmpleado === null || numEmpleado === undefined) return false;
-    return SALON_FAMA_EMPLEADOS.includes(String(numEmpleado).trim());
+    return esMacOS() && SALON_FAMA_EMPLEADOS.includes(String(numEmpleado).trim());
 }
 
 /* =========================================================
    ENTRADAS Y SALIDAS  (checadas.html)
    Números de empleado que ven en el encabezado el acceso al tablero con
-   las checadas de todos los colaboradores.
+   las checadas de todos los colaboradores (solo en macOS).
    ========================================================= */
 export const CHECADAS_EMPLEADOS = ['2801'];
 
-/* ¿Este número de empleado tiene acceso al tablero de entradas y salidas? */
+/* ¿Este número de empleado tiene acceso al tablero de entradas y salidas (y es macOS)? */
 export function tieneChecadas(numEmpleado) {
     if (numEmpleado === null || numEmpleado === undefined) return false;
-    return CHECADAS_EMPLEADOS.includes(String(numEmpleado).trim());
+    return esMacOS() && CHECADAS_EMPLEADOS.includes(String(numEmpleado).trim());
 }
 
 /* Pase de acceso a checadas.html: index.html lo guarda en localStorage al
