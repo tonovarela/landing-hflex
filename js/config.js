@@ -2,11 +2,11 @@
    CONFIGURACIÓN GENERAL
    Endpoints del servicio y constantes compartidas por los demás módulos.
    ========================================================= */
-const baseUrl = "https://servicios.litoprocess.com/perfil/api/perfil.php";
-const baseUrlPersonal = "https://servicios.litoprocess.com/perfil/api/personal.php";
-const baseUrlHoras = "https://servicios.litoprocess.com/perfil/api/horas-trabajadas.php";
-const baseUrlChecadas = "https://servicios.litoprocess.com/perfil/api/checadas.php";
-export const baseUrlFoto = "https://servicios.litoprocess.com/colaboradores/api/foto/";
+const baseUrl = "http://192.168.2.222/perfil/api/perfil.php";
+const baseUrlPersonal = "http://192.168.2.222/perfil/api/personal.php";
+const baseUrlHoras = "http://192.168.2.222/perfil/api/horas-trabajadas.php";
+const baseUrlChecadas = "http://192.168.2.222/perfil/api/checadas.php";
+export const baseUrlFoto = "http://192.168.2.222/colaboradores/api/foto/";
 
 /* Jornada completa de la Semana Flexible: 47.5 horas equivalen al 100%.
    El porcentaje, la barra de avance y la etiqueta "X de 47.5 horas" se calculan
@@ -35,9 +35,10 @@ export const API_CONFIG = {
 /* =========================================================
    RESTRICCIÓN POR SISTEMA OPERATIVO
    El Salón de la Fama y el acceso a checadas.html solo se muestran en
-   equipos con macOS. iPadOS se reporta como "MacIntel", así que se descarta
-   por tener pantalla táctil. Como el pase de checadas, es un control solo
-   del navegador (el user agent se puede falsificar).
+   equipos Apple: macOS e iOS/iPadOS. iPadOS se reporta como "MacIntel",
+   así que se distingue de macOS por tener pantalla táctil. Como el pase de
+   checadas, es un control solo del navegador (el user agent se puede
+   falsificar).
    ========================================================= */
 export function esMacOS() {
     try {
@@ -50,31 +51,49 @@ export function esMacOS() {
     }
 }
 
+/* iPhone, iPod e iPad (incluido iPadOS 13+, que se presenta como Mac táctil).
+   En iOS todos los navegadores usan WebKit y no exponen userAgentData. */
+export function esIOS() {
+    try {
+        const ua = navigator.userAgent || '';
+        if (/iPhone|iPad|iPod/i.test(navigator.platform || '') || /iPhone|iPad|iPod/i.test(ua)) return true;
+        const esMac = /Mac/i.test(navigator.platform || ua);
+        return esMac && navigator.maxTouchPoints > 1;
+    } catch {
+        return false;
+    }
+}
+
+/* ¿Sistema Apple permitido (macOS o iOS/iPadOS)? */
+export function esSistemaApple() {
+    return esMacOS() || esIOS();
+}
+
 /* =========================================================
    SALÓN DE LA FAMA
    Números de empleado autorizados a ver el listado global de horas
    trabajadas (ranking por semana). Es un acceso extra que solo aparece
-   en la tarjeta de perfil de estos colaboradores, y solo en macOS.
+   en la tarjeta de perfil de estos colaboradores, y solo en macOS o iOS.
    ========================================================= */
 export const SALON_FAMA_EMPLEADOS = ['2801'];
 
-/* ¿Este número de empleado tiene acceso al Salón de la Fama (y es macOS)? */
+/* ¿Este número de empleado tiene acceso al Salón de la Fama (y es macOS o iOS)? */
 export function tieneSalonFama(numEmpleado) {
     if (numEmpleado === null || numEmpleado === undefined) return false;
-    return esMacOS() && SALON_FAMA_EMPLEADOS.includes(String(numEmpleado).trim());
+    return esSistemaApple() && SALON_FAMA_EMPLEADOS.includes(String(numEmpleado).trim());
 }
 
 /* =========================================================
    ENTRADAS Y SALIDAS  (checadas.html)
    Números de empleado que ven en el encabezado el acceso al tablero con
-   las checadas de todos los colaboradores (solo en macOS).
+   las checadas de todos los colaboradores (solo en macOS o iOS).
    ========================================================= */
 export const CHECADAS_EMPLEADOS = ['2801'];
 
-/* ¿Este número de empleado tiene acceso al tablero de entradas y salidas (y es macOS)? */
+/* ¿Este número de empleado tiene acceso al tablero de entradas y salidas (y es macOS o iOS)? */
 export function tieneChecadas(numEmpleado) {
     if (numEmpleado === null || numEmpleado === undefined) return false;
-    return esMacOS() && CHECADAS_EMPLEADOS.includes(String(numEmpleado).trim());
+    return esSistemaApple() && CHECADAS_EMPLEADOS.includes(String(numEmpleado).trim());
 }
 
 /* Pase de acceso a checadas.html: index.html lo guarda en localStorage al
